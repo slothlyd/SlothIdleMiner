@@ -24,18 +24,51 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body { background-color: var(--bg-dark); color: var(--text-light); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; font-size: 1.1rem; }
 
+    .top-disclaimer-bar {
+      background: #1c1402;
+      color: var(--egg-gold);
+      font-size: 0.9rem;
+      padding: 6px 16px;
+      text-align: center;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .social-icons {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .social-icons a {
+      color: var(--egg-gold);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+    }
+
+    .social-icons svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
     .ticker-bar {
       background: #000;
       color: var(--egg-gold);
-      font-size: 1.2rem;
+      font-size: 0.95rem;
       font-weight: bold;
-      padding: 14px 0;
+      padding: 8px 0;
       white-space: nowrap;
       overflow: hidden;
-      border-bottom: 3px solid var(--border-color);
-      position: sticky;
-      top: 0;
-      z-index: 101;
+      border-bottom: 2px solid var(--border-color);
     }
     .ticker-content {
       display: inline-block;
@@ -55,7 +88,7 @@
       justify-content: space-between;
       align-items: center;
       position: sticky;
-      top: 51px;
+      top: 0;
       z-index: 100;
     }
 
@@ -232,9 +265,21 @@
 </head>
 <body>
 
+  <div class="top-disclaimer-bar">
+    <span>Disclaimer: Game in development; things may break; payouts not yet working; please don't spend Hive you don't want to lose.</span>
+    <div class="social-icons">
+      <a href="https://t.me/slothbuzz" target="_blank" rel="noopener noreferrer" title="Telegram">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.03-1.99 1.27-5.62 3.72-.53.36-1.01.54-1.44.53-.47-.02-1.37-.26-2.03-.48-.82-.27-1.47-.42-1.42-.88.03-.25.38-.51 1.08-.78 4.23-1.84 7.05-3.05 8.45-3.63 4.02-1.68 4.85-1.97 5.39-1.98.12 0 .39.03.56.17.15.12.19.28.21.4-.01.07.01.23-.01.37z"/></svg>
+      </a>
+      <a href="https://discord.gg/Qkx8kpbUJr" target="_blank" rel="noopener noreferrer" title="Discord">[cite: 2]
+        <svg viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.011c3.927 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+      </a>
+    </div>
+  </div>
+
   <div class="ticker-bar">
     <div class="ticker-content" id="tickerText">
-      🏆 Full Prize Pool Live Updates[cite: 8] | 🛡️ Server-Verified Custom-JSON On-Chain Anti-Cheat Active![cite: 8] | ⚔️ Secure Ledger Mode Enabled.[cite: 8]
+      🏆 Full Prize Pool Live Updates | 🛡️ Server-Verified Custom-JSON On-Chain Anti-Cheat Active! | ⚔️ Secure Ledger Mode Enabled.
     </div>
   </div>
 
@@ -1383,7 +1428,6 @@
 
     function dispatchAction(actionType, payload = {}, onSuccess = null) {
       if (!currentUser || !window.hive_keychain) return alert("Keychain required for secure custom-json signing.");
-      if (!gameState.hasPaidBuyIn && actionType !== 'buy_in_paid') return alert("Action locked! Please pay your Jungle Pass first.");
       const actionPacket = createActionPacket(actionType, payload);
       window.hive_keychain.requestCustomJson(
         currentUser,
@@ -1447,7 +1491,6 @@
     }
 
     function openWheelModal() {
-      if (!gameState.hasPaidBuyIn) return alert("Action locked! Please pay your Jungle Pass first.");
       const display = document.getElementById('wheelDisplay');
       if (display) display.innerText = '🎁';
       document.getElementById('wheelModal').style.display = 'flex';
@@ -1459,7 +1502,6 @@
 
     function claimGoldenSloth(event) {
       event.stopPropagation();
-      if (!gameState.hasPaidBuyIn) return alert("Action locked! Please pay your Jungle Pass first.");
       if (!currentUser || !window.hive_keychain) return alert('Connect Hive Keychain first to claim the golden sloth bonus.');
       const reward = {
         gems: 150,
@@ -1475,7 +1517,6 @@
     }
 
     function spinWheel(isFree) {
-      if (!gameState.hasPaidBuyIn) return alert("Action locked! Please pay your Jungle Pass first.");
       if (!currentUser || !window.hive_keychain) return alert('Connect Hive Keychain first to spin.');
       const now = Date.now();
       if (isFree && gameState.lastFreeSpinTime && now - gameState.lastFreeSpinTime < 86400000) {
@@ -1547,13 +1588,11 @@
     }
 
     function setMaxBossAttack() {
-      if (!gameState.hasPaidBuyIn) return alert("Action locked! Please pay your Jungle Pass first.");
       const attackInput = document.getElementById('gemAttackAmount');
       attackInput.value = Math.max(1, Math.floor(gameState.gems));
     }
 
     function convertEggsToHealth() {
-      if (!gameState.hasPaidBuyIn) return alert("Action locked! Please pay your Jungle Pass first.");
       const val = parseInt(document.getElementById('healthConvertInput').value) || 0;
       if (val < 1000 || gameState.gems < val) return alert("Insufficient eggs or below min threshold (1000).");
       const hpGain = Math.floor(val / 100);
@@ -1561,7 +1600,6 @@
     }
 
     function attackBoss() {
-      if (!gameState.hasPaidBuyIn) return alert("Action locked! Please pay your Jungle Pass first.");
       const amount = parseInt(document.getElementById('gemAttackAmount').value) || 0;
       if (!gameState.hasPaidBuyIn) return alert("Pay your jungle pass first.");
       if (gameState.energy < 1) return alert("⚡ Out of energy!");
@@ -1571,7 +1609,6 @@
     }
 
     function attackPvpTarget(targetUser, estLoot = 5000, targetMaxHp = 100) {
-      if (!gameState.hasPaidBuyIn) return alert("Action locked! Please pay your Jungle Pass first.");
       if (gameState.energy < 1) return alert("⚡ Out of energy!");
       // Normalize target name and ensure we have a cached target state
       const normalized = String(targetUser || '').replace(/^@/, '').toLowerCase();
@@ -1605,13 +1642,11 @@
     }
 
     function attackCustomTarget() {
-      if (!gameState.hasPaidBuyIn) return alert("Action locked! Please pay your Jungle Pass first.");
       const target = sanitizeInput(document.getElementById('raidTargetInput').value);
       if (target) attackPvpTarget(target, 5000);
     }
 
     function buyCoffeeBoost(cost, durationMs, boostPercent, name) {
-      if (!gameState.hasPaidBuyIn) return alert("Action locked! Please pay your Jungle Pass first.");
       if (!currentUser || !window.hive_keychain) return alert("Connect Hive Keychain to purchase with SlothBuzz.");
       const tokenAmount = cost.toFixed ? cost.toFixed(3) : Number(cost).toFixed(3);
       const memo = `Coffee Boost: ${name}`;
@@ -1637,7 +1672,6 @@
     }
 
     function buyFertilizer() {
-      if (!gameState.hasPaidBuyIn) return alert("Action locked! Please pay your Jungle Pass first.");
       if (!currentUser) return;
       if (!window.hive_keychain) return alert("Hive Keychain required.");
       window.hive_keychain.requestTransfer(
@@ -1659,7 +1693,6 @@
     }
 
     function buyEnergy() {
-      if (!gameState.hasPaidBuyIn) return alert("Action locked! Please pay your Jungle Pass first.");
       if (!currentUser) return;
       if (!window.hive_keychain) return alert("Hive Keychain required.");
       pruneEnergyPurchases();
@@ -1685,7 +1718,6 @@
     }
 
     function prestige(fee) {
-      if (!gameState.hasPaidBuyIn) return alert("Action locked! Please pay your Jungle Pass first.");
       if (fee && gameState.gems < fee * 1000) return alert("Not enough eggs to fertilize.");
       const leaves = fee ? 5 : 1;
       dispatchAction('ascend', { leavesGained: leaves });
@@ -1719,7 +1751,6 @@
     }
 
     function upgradeUnit(key, count) {
-      if (!gameState.hasPaidBuyIn) return alert("Action locked! Please pay your Jungle Pass first.");
       const unit = gameState.miners[key];
       if (!unit || count < 1) return;
       const maxCount = getMaxUpgradeCount(key);
@@ -1861,7 +1892,7 @@
             btn.className = 'btn-small btn-buyin';
             btn.type = 'button';
             btn.textContent = spec.label;
-            btn.disabled = gameState.gems < spec.cost || !gameState.hasPaidBuyIn;
+            btn.disabled = gameState.gems < spec.cost;
             btn.addEventListener('click', () => upgradeUnit(key, spec.count));
             actionRow.appendChild(btn);
           });
@@ -1870,7 +1901,7 @@
           maxBtn.className = 'btn-small btn-buyin';
           maxBtn.type = 'button';
           maxBtn.textContent = maxCount > 0 ? `Max ${maxCount} (${formatNumber(maxCost)} 🥚)` : 'Max';
-          maxBtn.disabled = maxCount <= 0 || !gameState.hasPaidBuyIn;
+          maxBtn.disabled = maxCount <= 0;
           maxBtn.addEventListener('click', () => upgradeUnit(key, maxCount));
           actionRow.appendChild(maxBtn);
 
