@@ -1046,14 +1046,21 @@
       if (!currentUser || !window.hive_keychain) return alert('Connect Hive Keychain first.');
       const message = sanitizeHangMessage(document.getElementById('hangMessageInput').value);
       if (!message) return alert('Please enter a short milestone message.');
+      // Target the main slothbuzz hangs thread (parent is the slothbuzz account)
+      const parentAuthor = 'slothbuzz';
+      const parentPermlink = 'hangs';
+      // permlink must be URL-safe lowercase; include user and timestamp for uniqueness
+      const safeUser = String(currentUser).toLowerCase().replace(/[^a-z0-9-]/g, '');
+      const permlink = `${safeUser}-hang-${Date.now()}`;
+
       const commentPayload = [
         [
           'comment',
           {
-            parent_author: 'slothbuzz.hangs',
-            parent_permlink: 'hangs-container-07012026',
+            parent_author: parentAuthor,
+            parent_permlink: parentPermlink,
             author: currentUser,
-            permlink: `hang-${Date.now()}`,
+            permlink: permlink,
             title: '',
             body: message,
             json_metadata: JSON.stringify({
