@@ -456,7 +456,10 @@
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
           <span style="color:var(--text-muted)">Milestones & Social</span>
-          <button class="btn-small btn-buyin" onclick="openHangModal()">📢 Share Milestone</button>
+            <div style="display:flex; gap:8px;">
+              <button class="btn-small btn-buyin" onclick="openHangModal()">📢 Share Milestone</button>
+              <button class="btn-small" onclick="syncAllPlayersStats()">🔁 Sync Stats</button>
+            </div>
         </div>
       </div>
 
@@ -564,6 +567,8 @@
       "https://anyx.io",
       "https://api.openhive.network"
     ];
+    // Optional server endpoint to collect signed sync_stats payloads
+    const STATS_SERVER_URL = '';
 
     let currentUser = null;
     let leaderboardFocusNearby = false;
@@ -642,12 +647,114 @@
       { name: 'ForestFury', score: 8200 }
     ];
 
+    // Fetch multiple Hive accounts and update local player stats (eggs, hp)
+    async function fetchAndUpdatePlayers(usernames) {
+      if (!Array.isArray(usernames) || usernames.length === 0) return;
+      // normalize and remove duplicates
+      const cleaned = [...new Set(usernames.map(u => String(u).replace(/^@/, '').toLowerCase()))];
+      try {
+        const accounts = await callHiveApi('condenser_api.get_accounts', [cleaned]);
+        if (!Array.isArray(accounts)) return;
+        accounts.forEach((acc) => {
+          if (!acc || !acc.name) return;
+          const name = acc.name.toLowerCase();
+          const hiveBal = parseFloat((acc.balance || '0').split(' ')[0]) || 0;
+          const vest = parseFloat((acc.vesting_shares || '0 VESTS').split(' ')[0]) || 0;
+          // Heuristic mapping: on-chain balances -> in-game eggs (tunable)
+          const eggsEstimate = Math.max(100, Math.floor(hiveBal * 1000 + vest / 1000));
+          const hpEstimate = Math.max(50, Math.floor(eggsEstimate / 100));
+          const prev = pvpTargets[name] || {};
+          pvpTargets[name] = { eggs: eggsEstimate, hp: Math.min(prev.maxHp || hpEstimate, prev.hp || hpEstimate), maxHp: hpEstimate, lastDamageAt: prev.lastDamageAt || 0 };
+
+          // Update AI leaderboard entries if present (case-insensitive)
+          for (let i = 0; i < AI_LEADERBOARD_ENTRIES.length; i++) {
+            if (AI_LEADERBOARD_ENTRIES[i].name.toLowerCase() === name) {
+              AI_LEADERBOARD_ENTRIES[i].score = eggsEstimate;
+            }
+          }
+        });
+      } catch (err) {
+        console.warn('Unable to fetch player accounts', err);
+      } finally {
+        // Refresh leaderboard and pvp displays
+        updateUI();
+        // update detailed pvp cards
+        Object.keys(pvpTargets).forEach(updatePvpTargetDisplay);
+      }
+    }
+    // Sync stats for players the client controls (currentUser) by broadcasting a signed custom_json
+    function syncAllPlayersStats() {
+      if (!currentUser || !window.hive_keychain) {
+        console.warn('No current user or Keychain not available; cannot sync stats.');
+        return;
+      }
+      Object.keys(pvpTargets).forEach((name) => {
+        // Only allow signing for the logged-in user
+        if (name.toLowerCase() !== currentUser.toLowerCase()) {
+          console.warn('Skipping sync for', name, '- not the logged-in user');
+          return;
+        }
+        const stat = pvpTargets[name];
+        const payload = {
+          app: 'slothbuzz/1.0',
+          action: 'sync_stats',
+          user: currentUser,
+          timestamp: Date.now(),
+          stats: {
+            eggs: stat.eggs || 0,
+            hp: stat.hp || 0,
+            maxHp: stat.maxHp || 0,
+            mp: gameState.mp || 0,
+            energy: gameState.energy || 0,
+            leaves: gameState.goldenLeaves || 0
+          }
+        };
+
+        window.hive_keychain.requestCustomJson(
+          currentUser,
+          HIVE_CUSTOM_JSON_ID,
+          'Posting',
+          JSON.stringify(payload),
+          'Sync player stats',
+          (res) => {
+            console.log('sync_stats response for', name, res);
+            if (res && (res.success === true || res.error == null || res.result)) {
+              console.log('Stats synced on-chain for', name);
+              // If a backend collector is configured, POST the payload and response for central storage
+              if (typeof STATS_SERVER_URL === 'string' && STATS_SERVER_URL.trim().length > 0) {
+                try {
+                  fetch(STATS_SERVER_URL.replace(/\/$/, '') + '/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ app: 'slothbuzz/1.0', action: 'sync_stats', payload: payload, txResult: res })
+                  }).then(r => r.json()).then(j => console.log('sync posted to server', j)).catch(e => console.warn('sync post failed', e));
+                } catch (e) {
+                  console.warn('sync post error', e);
+                }
+              }
+            } else {
+              console.warn('Stats sync failed for', name, res);
+            }
+          }
+        );
+      });
+    }
+
     function getLeaderboardEntries(focusNearby = false) {
       const entries = AI_LEADERBOARD_ENTRIES.map((entry) => ({ ...entry }));
-      const playerEntry = currentUser ? { name: `@${currentUser}`, score: Math.floor(Math.max(gameState.weeklyHiveEarned || 0, gameState.gems || 0)) } : null;
-      if (playerEntry) {
-        entries.push(playerEntry);
-      }
+      // include any cached PvP targets in the leaderboard candidates
+      Object.keys(pvpTargets).forEach((name) => {
+        const display = `@${name}`;
+        const existing = entries.find((e) => e.name.toLowerCase() === name.toLowerCase() || e.name === display);
+        if (!existing) {
+          entries.push({ name: display, score: Math.floor(pvpTargets[name].eggs || 0) });
+        } else {
+          existing.score = Math.floor(pvpTargets[name].eggs || existing.score);
+        }
+      });
+      const playerScore = currentUser && pvpTargets[currentUser] ? Math.floor(pvpTargets[currentUser].eggs) : Math.floor(Math.max(gameState.weeklyHiveEarned || 0, gameState.gems || 0));
+      const playerEntry = currentUser ? { name: `@${currentUser}`, score: playerScore } : null;
+      if (playerEntry) entries.push(playerEntry);
       entries.sort((a, b) => b.score - a.score);
       if (!playerEntry || !focusNearby) {
         return entries.slice(0, 5);
@@ -669,8 +776,19 @@
 
     function getLeaderboardTop10() {
       const entries = AI_LEADERBOARD_ENTRIES.map((entry) => ({ ...entry }));
+      // merge pvpTargets
+      Object.keys(pvpTargets).forEach((name) => {
+        const display = `@${name}`;
+        const existing = entries.find((e) => e.name.toLowerCase() === name.toLowerCase() || e.name === display);
+        if (!existing) {
+          entries.push({ name: display, score: Math.floor(pvpTargets[name].eggs || 0) });
+        } else {
+          existing.score = Math.floor(pvpTargets[name].eggs || existing.score);
+        }
+      });
       if (currentUser) {
-        entries.push({ name: `@${currentUser}`, score: Math.floor(Math.max(gameState.weeklyHiveEarned || 0, gameState.gems || 0)) });
+        const playerScore = pvpTargets[currentUser] ? Math.floor(pvpTargets[currentUser].eggs) : Math.floor(Math.max(gameState.weeklyHiveEarned || 0, gameState.gems || 0));
+        entries.push({ name: `@${currentUser}`, score: playerScore });
       }
       entries.sort((a, b) => b.score - a.score);
       return entries.slice(0, 10);
@@ -1049,6 +1167,12 @@
           fetchRealHiveAccountData();
           loadStateFromHiveBlockchain();
           updateBuyInDisplay();
+          // Fetch stats for AI leaderboard, known PvP targets, and the current user
+          const known = AI_LEADERBOARD_ENTRIES.map(e => e.name).concat(Object.keys(pvpTargets || {}));
+          known.push(username);
+          fetchAndUpdatePlayers(known);
+          // After updating players, attempt to sync current user's stats on-chain
+          syncAllPlayersStats();
         } else {
           console.warn('Keychain sign buffer failed', res);
           updateKeychainStatus();
