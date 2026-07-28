@@ -851,7 +851,7 @@
           gameState.lifetimeBossDamage += damage;
           if (bossState.currentHp <= 0) {
             bossState.level += 1;
-            bossState.maxHp = Math.floor(bossState.maxHp * 1.3);
+            bossState.maxHp = Math.floor(bossState.maxHp * 10);
             bossState.currentHp = bossState.maxHp;
             gameState.weeklyBossesDefeated += 1;
             gameState.lifetimeBossesDefeated += 1;
@@ -1046,23 +1046,31 @@
       if (!currentUser || !window.hive_keychain) return alert('Connect Hive Keychain first.');
       const message = sanitizeHangMessage(document.getElementById('hangMessageInput').value);
       if (!message) return alert('Please enter a short milestone message.');
-      const payload = {
-        type: 'hang_post',
-        message,
-        milestone: {
-          eggs: gameState.weeklyHatchedGems,
-          leaves: gameState.goldenLeaves,
-          bosses: gameState.weeklyBossesDefeated
-        },
-        timestamp: Date.now()
-      };
+      const commentPayload = [
+        [
+          'comment',
+          {
+            parent_author: 'slothbuzz.hangs',
+            parent_permlink: 'hangs-container-07012026',
+            author: currentUser,
+            permlink: `hang-${Date.now()}`,
+            title: '',
+            body: message,
+            json_metadata: JSON.stringify({
+              app: 'slothbuzz/1.0',
+              format: 'markdown',
+              tags: ['slothbuzz', 'hangs']
+            })
+          }
+        ]
+      ];
 
       const submitPost = () => {
         window.hive_keychain.requestCustomJson(
           currentUser,
           HIVE_CUSTOM_JSON_ID,
           'Posting',
-          JSON.stringify(payload),
+          JSON.stringify(commentPayload),
           'Share milestone to SlothBuzz Hangs',
           (res) => {
             if (!res) return alert('Hive Keychain response missing.');
@@ -1439,7 +1447,8 @@
       const rewardShare = bossState.maxHp ? Math.min(100, (gameState.weeklyBossDamage / bossState.maxHp) * 100) : 0;
       document.getElementById('playerContribText').innerText = `Your Share: ${formatNumber(rewardShare)}%`;
       document.getElementById('bossTitle').innerText = `🦥 Emperor Sloth (Lvl ${bossState.level})`;
-      document.getElementById('bossBountyText').innerText = `Level Prize Pool: ${formatNumber(Math.max(2, bossState.level * 2))}.000 HIVE`;
+      const bossPrizePool = Math.max(0.01, fullPrizePool * 0.02);
+      document.getElementById('bossBountyText').innerText = `Level Prize Pool: ${formatNumber(bossPrizePool)} HIVE`;
       document.getElementById('fullPrizePoolDisplay').innerText = `🏆 Full Pool: ${formatNumber(fullPrizePool)} HIVE`;
       document.getElementById('weeklyPayoutDisplay').innerText = `🎁 Estimated Weekly Payout: ${formatNumber(fullPrizePool * 0.2)} HIVE`;
       document.getElementById('syncStatus').innerText = currentUser ? "🛡️ On-Chain Mode" : "🛡️ Anti-Cheat Ready";
@@ -1531,9 +1540,11 @@
 
           const buttonSpecs = [
             { count: 1, label: `+1 (${formatNumber(oneCost)} 🥚)`, cost: oneCost },
-            { count: 5, label: `+5 (${formatNumber(fiveCost)} 🥚)`, cost: fiveCost },
-            { count: 10, label: `+10 (${formatNumber(tenCost)} 🥚)`, cost: tenCost }
+            { count: 5, label: `+5 (${formatNumber(fiveCost)} 🥚)`, cost: fiveCost }
           ];
+          if (gameState.gems >= tenCost) {
+            buttonSpecs.push({ count: 10, label: `+10 (${formatNumber(tenCost)} 🥚)`, cost: tenCost });
+          }
 
           buttonSpecs.forEach((spec) => {
             const btn = document.createElement('button');
