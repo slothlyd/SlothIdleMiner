@@ -306,7 +306,11 @@
         <div id="syncStatus" class="sync-badge">🛡️ Anti-Cheat Ready</div>
         <div id="keychainStatus" class="sync-badge" style="margin-left:8px; white-space: nowrap;">Keychain checking...</div>
         <input type="text" id="username" placeholder="Hive Account" style="width: 130px;" />
-        <button id="loginBtn" onclick="connectKeychain()">Connect</button>
+          <label style="display:flex; align-items:center; gap:6px; margin-left:6px;">
+            <input type="checkbox" id="rememberMe" />
+            <span style="font-size:0.8rem; color:var(--text-muted)">Remember</span>
+          </label>
+          <button id="loginBtn" onclick="connectKeychain()">Connect</button>
       </div>
     </div>
   </header>
@@ -1107,6 +1111,32 @@
       return `Connected: @${currentUser}`;
     };
 
+    // Simple cookie helpers to remember username/session
+    function setCookie(name, value, days) {
+      let expires = '';
+      if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = '; expires=' + date.toUTCString();
+      }
+      document.cookie = name + '=' + encodeURIComponent(value) + expires + '; path=/';
+    }
+
+    function getCookie(name) {
+      const nameEQ = name + '=';
+      const ca = document.cookie.split(';');
+      for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) return decodeURIComponent(c.substring(nameEQ.length, c.length));
+      }
+      return null;
+    }
+
+    function eraseCookie(name) {
+      document.cookie = name + '=; Max-Age=0; path=/';
+    }
+
     window.updateKeychainStatus = function () {
       const statusEl = document.getElementById('keychainStatus');
       if (!statusEl) return;
@@ -1157,12 +1187,22 @@
         return alert("Hive Keychain is required for on-chain actions.");
       }
 
+      const remember = !!document.getElementById('rememberMe') && document.getElementById('rememberMe').checked;
+
       window.hive_keychain.requestSignBuffer(username, "Auth_" + Date.now(), "Posting", (res) => {
         const success = res && (res.success === true || res.result || res.error == null);
         if (success) {
           currentUser = username;
           document.getElementById('loginBtn').innerText = "Connected";
           document.getElementById('loginBtn').disabled = true;
+          // Persist username/session if requested
+          if (remember) {
+            setCookie('sloth_user', username, 30);
+            setCookie('sloth_session', '1', 30);
+          } else {
+            eraseCookie('sloth_user');
+            eraseCookie('sloth_session');
+          }
           updateSyncButtons();
           fetchRealHiveAccountData();
           loadStateFromHiveBlockchain();
@@ -1489,11 +1529,15 @@
 
     function attackPvpTarget(targetUser, estLoot = 5000, targetMaxHp = 100) {
       if (gameState.energy < 1) return alert("⚡ Out of energy!");
-      // Ensure we have a cached target state
-      if (!pvpTargets[targetUser]) {
-        pvpTargets[targetUser] = { eggs: estLoot, hp: targetMaxHp, maxHp: targetMaxHp, lastDamageAt: 0 };
+      // Normalize target name and ensure we have a cached target state
+      const normalized = String(targetUser || '').replace(/^@/, '').toLowerCase();
+      if (!normalized) return alert('Invalid target');
+      if (!pvpTargets[normalized]) {
+        pvpTargets[normalized] = { eggs: estLoot, hp: targetMaxHp, maxHp: targetMaxHp, lastDamageAt: 0 };
+        // Attempt to fetch on-chain account data for the new target to improve estimates
+        fetchAndUpdatePlayers([normalized]);
       }
-      const target = pvpTargets[targetUser];
+      const target = pvpTargets[normalized];
       // Recalculate current eggs and HP
       const currentEggs = Math.max(0, Math.floor(target.eggs || estLoot));
       const stolen = Math.max(1, Math.floor(currentEggs * 0.1));
@@ -1503,15 +1547,15 @@
 
       // Apply immediate local simulation: reduce target eggs and HP, mark damage time
       target.eggs = Math.max(0, target.eggs - stolen);
-      const currHp = getTargetCurrentHp(targetUser);
+      const currHp = getTargetCurrentHp(normalized);
       const newHp = Math.max(0, currHp - damage);
       target.hp = newHp;
       target.lastDamageAt = Date.now();
-      updatePvpTargetDisplay(targetUser);
+      updatePvpTargetDisplay(normalized);
 
       // Dispatch the verified on-chain action (will also update local state when confirmed)
-      dispatchAction('attack_target', { target: targetUser, stolenEggs: stolen, damage: damage }, () => {
-        alert(`⚔️ Raid complete — stolen ${formatNumber(stolen)} eggs from @${targetUser}!`);
+      dispatchAction('attack_target', { target: normalized, stolenEggs: stolen, damage: damage }, () => {
+        alert(`⚔️ Raid complete — stolen ${formatNumber(stolen)} eggs from @${normalized}!`);
         updateUI();
       });
     }
@@ -1788,6 +1832,25 @@
     }
 
     function initializeGame() {
+      // Restore session from cookie if available (keeps user 'logged in' locally)
+      try {
+        const savedUser = getCookie('sloth_user');
+        const savedSession = getCookie('sloth_session');
+        if (savedUser && savedSession) {
+          currentUser = savedUser;
+          const usernameInput = document.getElementById('username');
+          if (usernameInput) usernameInput.value = savedUser;
+          const loginBtn = document.getElementById('loginBtn');
+          if (loginBtn) { loginBtn.innerText = 'Connected'; loginBtn.disabled = true; }
+          updateSyncButtons();
+          // Hydrate data for the restored user (no Keychain signing occurs here)
+          fetchRealHiveAccountData();
+          loadStateFromHiveBlockchain();
+          const known = AI_LEADERBOARD_ENTRIES.map(e => e.name).concat(Object.keys(pvpTargets || {}));
+          known.push(savedUser);
+          fetchAndUpdatePlayers(known);
+        }
+      } catch (e) { console.warn('Session restore failed', e); }
       updateSyncButtons();
       recalculateMp();
       updateUI();
@@ -1809,6 +1872,15 @@
           updateUI();
         }
       }, 250);
+      // Periodically refresh PvP target estimates from on-chain data so leaderboard stays live
+      setInterval(() => {
+        try {
+          const keys = Object.keys(pvpTargets || {});
+          if (keys.length > 0) fetchAndUpdatePlayers(keys);
+        } catch (e) {
+          console.warn('Periodic player refresh failed', e);
+        }
+      }, 60 * 1000); // every 60s
       setInterval(() => {
         const now = Date.now();
         let remainingMs = cycleEndTime - now;
