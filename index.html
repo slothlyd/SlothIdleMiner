@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sloth Idle Hatcher - Hive League</title>
+  <style>
+    :root {
+      --sloth-green: #27ae60;
+      --sloth-dark-green: #1e824c;
+      --egg-gold: #f39c12;
+      --bg-dark: #0f1410;
+      --card-bg: #18231c;
+      --card-inner: #0d140e;
+      --text-light: #ecf0f1;
+      --text-muted: #bdc3c7;
+      --hive-red: #e31337;
+      --coffee-brown: #d35400;
+      --energy-blue: #3498db;
+      --health-red: #e74c3c;
+      --border-color: #34495e;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: var(--bg-dark); color: var(--text-light); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; font-size: 1.1rem; }
+
+    .ticker-bar {
+      background: #000;
+      color: var(--egg-gold);
+      font-size: 0.95rem;
+      font-weight: bold;
+      padding: 8px 0;
+      white-space: nowrap;
+      overflow: hidden;
+      border-bottom: 2px solid var(--border-color);
+    }
+    .ticker-content {
+      display: inline-block;
+      padding-left: 100%;
+      animation: ticker 25s linear infinite;
+    }
+    @keyframes ticker {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(-100%, 0, 0); }
+    }
+
+    header {
+      background: rgba(24, 35, 28, 0.98);
+      border-bottom: 3px solid var(--sloth-green);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand h1 {
+      font-size: 1.6rem;
+      background: linear-gradient(45deg, var(--sloth-green), var(--egg-gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .prize-pool-banner {
+      background: linear-gradient(135deg, #1c1402, #3d2b02);
+      border: 2px solid var(--egg-gold);
+      border-radius: 10px;
+      padding: 6px 16px;
+      text-align: center;
+      box-shadow: 0 0 12px rgba(243, 156, 18, 0.3);
+    }
+    .prize-pool-banner .full-pool { font-size: 1.2rem; font-weight: bold; color: var(--egg-gold); }
+    .prize-pool-banner .weekly-payout { font-size: 0.8rem; color: #f1c40f; text-transform: uppercase; font-weight: bold; }
+
+    .header-right { display: flex; align-items: center; gap: 15px; }
+
+    .header-stats {
+      display: flex;
+      gap: 15px;
+      background: var(--card-inner);
+      padding: 8px 16px;
+      border-radius: 12px;
+      border: 2px solid var(--border-color);
+      align-items: center;
+    }
+
+    .stat-pill { display: flex; flex-direction: column; align-items: flex-end; }
+    .stat-pill span { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; }
+    .stat-pill strong { font-size: 1.1rem; color: var(--egg-gold); }
+
+    .auth-box { display: flex; align-items: center; gap: 8px; }
+
+    input[type="text"], input[type="number"] {
+      background: #0a0e0b;
+      border: 2px solid var(--border-color);
+      color: var(--text-light);
+      padding: 8px 12px;
+      border-radius: 8px;
+      outline: none;
+      font-size: 0.95rem;
+    }
+
+    button {
+      background: linear-gradient(135deg, var(--sloth-green), var(--sloth-dark-green));
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    button:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(39, 174, 96, 0.5); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .btn-buyin { background: linear-gradient(135deg, var(--egg-gold), #d35400); }
+    .btn-coffee { background: linear-gradient(135deg, var(--coffee-brown), #e67e22); }
+    .btn-raid { background: linear-gradient(135deg, var(--hive-red), #900c3f); }
+    .btn-health { background: linear-gradient(135deg, var(--health-red), #c0392b); }
+    .btn-small { padding: 6px 10px; font-size: 0.85rem; }
+
+    .container {
+      display: grid;
+      grid-template-columns: 380px 1fr 400px;
+      gap: 20px;
+      padding: 20px;
+      flex: 1;
+      max-width: 1920px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 14px;
+      padding: 16px;
+      border: 2px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 8px; }
+    .card h2 { font-size: 1.15rem; color: var(--egg-gold); display: flex; align-items: center; gap: 6px; }
+
+    .game-timer-card {
+      background: linear-gradient(180deg, #101c13 0%, var(--card-inner) 100%);
+      border: 2px solid var(--sloth-green);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .boss-banner {
+      background: linear-gradient(180deg, #1f1013 0%, #0d140e 100%);
+      border: 2px solid var(--hive-red);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .boss-avatar-large { font-size: 3.5rem; text-align: center; }
+
+    .health-bar-container {
+      width: 100%; height: 20px; background: #050805; border-radius: 10px; overflow: hidden; border: 2px solid var(--border-color);
+    }
+    .health-bar-fill { height: 100%; background: linear-gradient(90deg, var(--hive-red), var(--egg-gold)); width: 100%; transition: width 0.3s ease; }
+    .sloth-hp-bar-fill { height: 100%; background: linear-gradient(90deg, #e74c3c, #2ecc71); width: 100%; transition: width 0.3s ease; }
+
+    .sloth-grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); 
+      gap: 12px; 
+      max-height: 820px; 
+      overflow-y: auto; 
+    }
+    .sloth-card {
+      background: var(--card-inner); border: 2px solid var(--border-color); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; position: relative;
+    }
+    .sloth-card.legendary { border-color: gold; box-shadow: 0 0 10px rgba(255,215,0,0.3); }
+    .sloth-art-frame {
+      width: 100%; height: 100px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); background: #000;
+      display: flex; align-items: center; justify-content: center; font-size: 2.5rem;
+    }
+    .sloth-art-frame img { width: 100%; height: 100%; object-fit: cover; }
+
+    .coffee-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .coffee-card {
+      background: var(--card-inner); border: 1px solid var(--coffee-brown); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; text-align: center;
+    }
+
+    .leaderboard-list { list-style: none; font-size: 0.95rem; display: flex; flex-direction: column; gap: 6px; }
+    .leaderboard-list li { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: var(--card-inner); border-radius: 8px; border: 1px solid var(--border-color); }
+
+    .pvp-target-list { display: flex; flex-direction: column; gap: 8px; }
+    .pvp-target-card {
+      background: var(--card-inner); border: 1px solid var(--hive-red); border-radius: 8px; padding: 10px; display: flex; justify-content: space-between; align-items: center;
+    }
+
+    .overlay-lock {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 20, 16, 0.97); border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; padding: 30px; text-align: center;
+    }
+
+    #goldenSloth {
+      position: fixed; font-size: 4rem; cursor: pointer; display: none; z-index: 999; animation: pulse 0.6s infinite alternate; filter: drop-shadow(0 0 14px gold); user-select: none;
+    }
+    @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.2); } }
+
+    .modal { display: none; position: fixed; z-index: 1100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
+    .modal-content { background: var(--card-bg); border: 3px solid var(--egg-gold); border-radius: 14px; padding: 24px; max-width: 450px; width: 90%; text-align: center; display: flex; flex-direction: column; gap: 14px; position: relative; }
+    .close-modal { position: absolute; top: 10px; right: 16px; font-size: 1.8rem; cursor: pointer; color: var(--text-muted); }
+
+    .frenzy-active-badge { background: linear-gradient(45deg, #e74c3c, #f1c40f); color: #000; font-weight: bold; padding: 4px 10px; border-radius: 16px; font-size: 0.8rem; }
+    .coffee-active-badge { background: linear-gradient(45deg, var(--coffee-brown), var(--egg-gold)); color: #fff; font-weight: bold; padding: 4px 10px; border-radius: 16px; font-size: 0.80rem; }
+    .sync-badge { font-size: 0.75rem; color: var(--sloth-green); font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div class="ticker-bar">
+    <div class="ticker-content" id="tickerText">
+      🏆 Full Prize Pool Live Updates | 🛡️ Server-Verified Custom-JSON On-Chain Anti-Cheat Active! | ⚔️ Secure Ledger Mode Enabled.
+    </div>
+  </div>
+
+  <div id="goldenSloth" onclick="claimGoldenSloth(event)">✨🦥✨</div>
+
+  <div id="wheelModal" class="modal">
+    <div class="modal-content">
+      <span class="close-modal" onclick="closeWheelModal()">&times;</span>
+      <h2>🎡 Lucky Jungle Wheel</h2>
+      <p style="font-size:0.9rem; color:var(--text-muted)">Spin for a free daily reward, or pay 1 HIVE for a premium lucky spin.</p>
+      
+      <div id="wheelDisplay" style="font-size: 3rem; padding: 16px 0; background: var(--card-inner); border-radius: 10px; border: 2px solid var(--border-color);">
+        🎁
+      </div>
+
+      <div style="display:flex; gap:10px; justify-content:center;">
+        <button class="btn-small" onclick="spinWheel(true)">🎁 Daily Free Spin</button>
+        <button class="btn-buyin btn-small" onclick="spinWheel(false)">💎 Spin (1 HIVE)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PvP Info Modal -->
+  <div id="pvpModal" class="modal">
+    <div class="modal-content">
+      <span class="close-modal" onclick="closePvpModal()">&times;</span>
+      <h2 style="color:var(--hive-red)">⚔️ Welcome to the Jungle Arena!</h2>
+      <p style="font-size:0.95rem; color:var(--text-muted); line-height: 1.4;">
+        You have successfully unlocked your Jungle Pass! In the arena, you can attack rival players to plunder their eggs, manage your defense HP, and dominate the global rankings. Use your energy wisely!
+      </p>
+      <button class="btn-raid" style="width:100%; margin-top:10px;" onclick="closePvpModal()">Got It, Let's Raid!</button>
+    </div>
+  </div>
+
+  <header>
+    <div class="brand">
+      <h1>🦥 Sloth Idle Hatcher</h1>
+    </div>
+
+    <div class="prize-pool-banner">
+      <div class="full-pool" id="fullPrizePoolDisplay">🏆 Full Pool: 500.000 HIVE</div>
+      <div class="weekly-payout" id="weeklyPayoutDisplay">🎁 Estimated Weekly Payout: 100.000 HIVE</div>
+    </div>
+
+    <div class="header-right">
+      <div class="header-stats">
+        <div class="stat-pill">
+          <span>Hatched Eggs</span>
+          <strong id="headerEggCount">0 🥚</strong>
+        </div>
+        <div style="width: 2px; height: 26px; background: var(--border-color);"></div>
+        <div class="stat-pill">
+          <span>Production</span>
+          <strong id="headerCpsCount" style="color:var(--sloth-green)">0 / sec</strong>
+        </div>
+        <div style="width: 2px; height: 26px; background: var(--border-color);"></div>
+        <div class="stat-pill">
+          <span>Energy</span>
+          <strong id="headerEnergyCount" style="color:var(--energy-blue)">5 / 5 ⚡</strong>
+        </div>
+        <div style="width: 2px; height: 26px; background: var(--border-color);"></div>
+        <div class="stat-pill">
+          <span>Golden Leaves</span>
+          <strong id="headerLeafCount" style="color:var(--egg-gold)">0 🍃</strong>
+        </div>
+      </div>
+
+      <div id="coffeeBadge" class="coffee-active-badge" style="display:none;">☕ COFFEE BOOST ACTIVE!</div>
+      <div id="frenzyBadge" class="frenzy-active-badge" style="display:none;">3x FRENZY ACTIVE!</div>
+
+      <div class="auth-box">
+        <div id="syncStatus" class="sync-badge">🛡️ Anti-Cheat Ready</div>
+        <div id="keychainStatus" class="sync-badge" style="margin-left:8px; white-space: nowrap;">Keychain checking...</div>
+        <input type="text" id="username" placeholder="Hive Account" style="width: 130px;" />
+        <button id="loginBtn" onclick="connectKeychain()">Connect</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <div class="game-timer-card">
+        <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: bold; text-transform: uppercase;">⌛ Weekly Reset (Mon 12:00 PM)</div>
+        <div id="liveCountdown" style="font-size: 1.6rem; font-weight: bold; color: var(--egg-gold); font-family: monospace; margin-top: 2px;">07d 00h 00m 00s</div>
+      </div>
+
+      <div class="card-header" style="margin-top:5px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <h2 style="margin:0;">🏆 Live Global Leaderboard</h2>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button id="leaderboardFocusBtn" class="btn-small" onclick="toggleLeaderboardFocus()">Nearby Ranks</button>
+          <button id="leaderboardTop10Btn" class="btn-small" onclick="openTop10Modal()">Top 10</button>
+        </div>
+      </div>
+      <ol class="leaderboard-list" id="leaderboard"></ol>
+
+      <div id="top10Modal" class="modal">
+        <div class="modal-content">
+          <span class="close-modal" onclick="closeTop10Modal()">&times;</span>
+          <h2>🏅 Top 10 Players</h2>
+          <p style="font-size:0.9rem; color:var(--text-muted); line-height:1.4;">View the live top 10 leaderboard. Your current rank remains visible in the main leaderboard unless you're in the top 5.</p>
+          <ol class="leaderboard-list" id="top10Leaderboard" style="max-height:320px; overflow-y:auto;"></ol>
+          <button class="btn-small" onclick="closeTop10Modal()">Close</button>
+        </div>
+      </div>
+
+      <div class="card-header" style="margin-top:5px;">
+        <h2>⚔️ Giant Sloth Emperor</h2>
+      </div>
+
+      <div class="boss-banner">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <b style="color:var(--hive-red); font-size:1rem;" id="bossTitle">🦥 Emperor Sloth (Lvl 1)</b>
+          <span style="font-size:0.85rem; color:var(--egg-gold)" id="bossBountyText">Level Prize Pool: 2.000 HIVE</span>
+        </div>
+
+        <div class="boss-avatar-large">👑🦥</div>
+
+        <div class="health-bar-container">
+          <div class="health-bar-fill" id="bossHpFill"></div>
+        </div>
+
+        <div style="font-size:0.85rem; display:flex; justify-content:space-between; color:var(--text-muted)">
+          <span id="bossHpText">HP: 10,000 / 10,000</span>
+          <span id="playerContribText" style="color:var(--sloth-green)">Your Share: 0%</span>
+        </div>
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; line-height:1.3;">
+          Each egg spent on boss attacks converts to <b>10 damage</b>. Your reward share is proportional to your damage contribution when the boss falls.
+        </div>
+        <div style="display:flex; gap:6px; margin-top:4px;">
+          <input type="number" id="gemAttackAmount" placeholder="Eggs to throw" min="1" style="flex:1;" />
+          <button class="btn-buyin btn-small" onclick="setMaxBossAttack()">Max</button>
+          <button class="btn-small" onclick="attackBoss(event)">🥚 Attack</button>
+        </div>
+      </div>
+
+      <div class="card-header">
+        <h2 style="color: var(--coffee-brown)">☕ Coffee Bar</h2>
+      </div>
+      <div class="coffee-grid">
+        <div class="coffee-card">
+          <b style="font-size:0.8rem">☕ Espresso</b>
+          <small style="color:var(--egg-gold)">+50% Boost (1h)</small>
+          <button class="btn-coffee btn-small" onclick="buyCoffeeBoost(1, 3600000, 0.50, 'Espresso')">1 SLOTHBUZZ</button>
+        </div>
+        <div class="coffee-card">
+          <b style="font-size:0.8rem">🧋 Cold Brew</b>
+          <small style="color:var(--egg-gold)">+50% Boost (2h)</small>
+          <button class="btn-coffee btn-small" onclick="buyCoffeeBoost(2, 7200000, 0.50, 'Cold Brew')">2 SLOTHBUZZ</button>
+        </div>
+        <div class="coffee-card">
+          <b style="font-size:0.8rem">🥛 Flat White</b>
+          <small style="color:var(--egg-gold)">+50% Boost (4h)</small>
+          <button class="btn-coffee btn-small" onclick="buyCoffeeBoost(5, 14400000, 0.50, 'Flat White')">5 SLOTHBUZZ</button>
+        </div>
+        <div class="coffee-card">
+          <b style="font-size:0.8rem">☕ Nitro Cold</b>
+          <small style="color:var(--egg-gold)">+100% Boost (8h)</small>
+          <button class="btn-coffee btn-small" onclick="buyCoffeeBoost(10, 28800000, 1.00, 'Nitro Cold Brew')">10 SLOTHBUZZ</button>
+        </div>
+        <div class="coffee-card">
+          <b style="font-size:0.8rem">🍨 Affogato</b>
+          <small style="color:var(--egg-gold)">+100% Boost (12h)</small>
+          <button class="btn-coffee btn-small" onclick="buyCoffeeBoost(20, 43200000, 1.00, 'Affogato')">20 SLOTHBUZZ</button>
+        </div>
+        <div class="coffee-card">
+          <b style="font-size:0.8rem">🚀 Dark Roast</b>
+          <small style="color:var(--egg-gold)">+100% Boost (24h)</small>
+          <button class="btn-coffee btn-small" onclick="buyCoffeeBoost(50, 86400000, 1.00, 'Dark Roast')">50 SLOTHBUZZ</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="position:relative;">
+      <div class="overlay-lock" id="buyInOverlay">
+        <h2 style="margin-bottom:10px; font-size: 1.4rem;">Jungle Pass Required</h2>
+        <p style="color: var(--text-muted); font-size:0.95rem; max-width:300px; margin-bottom:16px;">
+          Unlock your <b>1 HIVE Jungle Pass</b> to start hatching eggs securely!
+        </p>
+        <button class="btn-buyin" id="buyInBtn" style="font-size:1rem; padding: 10px 20px;" onclick="payBuyIn()" disabled>Pay 1 HIVE Pass</button>
+      </div>
+
+      <div class="card-header">
+        <h2>🦥 Sloth Mining Lineup</h2>
+        <button class="btn-buyin btn-small" onclick="openWheelModal()">🎡 Lucky Wheel</button>
+      </div>
+
+      <div class="sloth-grid" id="slothRosterContainer"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>📊 Player Statistics <button id="fetchApiBtn" class="btn-small" style="font-size:0.65rem; padding:2px 6px;" onclick="fetchRealHiveAccountData()">🔄 Fetch API</button></h2>
+      </div>
+      <div style="background:var(--card-inner); padding:10px 12px; border-radius:8px; border:1px solid var(--border-color); display:flex; flex-direction:column; gap:8px; font-size:0.85rem;">
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:4px;">
+          <span style="color:var(--text-muted)">Blockchain Account</span>
+          <span style="color:var(--egg-gold)" id="apiAccountMeta">Not Connected</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span>💰 HIVE / HP:</span>
+          <b><span id="apiHiveBal">0.000</span> / <span id="apiHivePower">0.000</span></b>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span>🥚 Hatched Eggs:</span>
+          <b><span id="statWeeklyEggs">0</span> / <span id="statLifetimeEggs">0</span></b>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span>⛏️ Miners Unlocked:</span>
+          <b><span id="statWeeklyMiners">1</span> / <span id="statLifetimeMiners">1</span></b>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span>💥 Boss Damage:</span>
+          <b><span id="statWeeklyBossDmg">0</span> / <span id="statLifetimeBossDmg">0</span></b>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span>👑 Bosses Defeated:</span>
+          <b><span id="statWeeklyBossesDef">0</span> / <span id="statLifetimeBossesDef">0</span></b>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span>💎 Earned Rewards:</span>
+          <b><span id="statWeeklyHiveEarned">0.000</span> / <span id="statLifetimeHiveEarned">0.000</span> HIVE</b>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+          <span style="color:var(--text-muted)">Milestones & Social</span>
+          <button class="btn-small btn-buyin" onclick="openHangModal()">📢 Share Milestone</button>
+        </div>
+      </div>
+
+      <div class="card-header" style="margin-top:10px;">
+        <h2 style="color:var(--hive-red)">⚔️ Attack & Raid Targets</h2>
+      </div>
+
+      <div style="background:var(--card-inner); padding:10px; border-radius:8px; border:1px solid var(--hive-red); display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
+          <span>⚡ Energy: <b id="pvpEnergyDisplay" style="color:var(--energy-blue)">5 / 5</b></span>
+          <span style="color:var(--text-muted)">Verified Anti-Cheat Engine</span>
+        </div>
+
+        <div class="pvp-target-list">
+          <div class="pvp-target-card">
+            <div>
+              <b style="font-size:0.95rem;">@slothmaster</b>
+              <div style="font-size:0.75rem; color:var(--health-red)">HP: 140/140 | Est. Eggs: ~15.4K</div>
+            </div>
+            <button class="btn-raid btn-small" onclick="attackPvpTarget('slothmaster', 15400, 140)">⚔️ Attack</button>
+          </div>
+          <div class="pvp-target-card">
+            <div>
+              <b style="font-size:0.95rem;">@crypto_node</b>
+              <div style="font-size:0.75rem; color:var(--health-red)">HP: 80/80 | Est. Eggs: ~9.8K</div>
+            </div>
+            <button class="btn-raid btn-small" onclick="attackPvpTarget('crypto_node', 9800, 80)">⚔️ Attack</button>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:6px; margin-top:4px;">
+          <input type="text" id="raidTargetInput" placeholder="Custom @username" style="flex:1;" />
+          <button class="btn-raid btn-small" onclick="attackCustomTarget()">⚔️ Raid</button>
+        </div>
+      </div>
+
+      <div class="card-header" style="margin-top:10px;">
+        <h2 style="color: var(--health-red)">🛡️ Sloth Health & Defense</h2>
+      </div>
+      <div style="background:var(--card-inner); padding:12px; border-radius:8px; border:1px solid var(--health-red); display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+          <span style="color:var(--text-muted)">Sloth Defensive HP:</span>
+          <b id="slothHpDisplay" style="color:var(--health-red)">100 / 100 HP</b>
+        </div>
+        <div class="health-bar-container">
+          <div class="sloth-hp-bar-fill" id="slothHpFill"></div>
+        </div>
+        <div style="font-size:0.75rem; color:var(--text-muted)">
+          Defends against incoming enemy raids (1,000 Eggs = +10 HP). More HP reduces how much damage your sloth takes, so you can survive more attacks and keep fighting.
+        </div>
+        <div style="font-size:0.75rem; color:var(--text-muted);">
+          Attacks use energy, so keep your energy and health topped up to maximize returns.
+        </div>
+        <div style="display:flex; gap:6px; margin-top:4px;">
+          <input type="number" id="healthConvertInput" placeholder="Eggs (min 1000)" step="1000" min="1000" style="flex:1;" />
+          <button class="btn-health btn-small" onclick="convertEggsToHealth()">❤️ Boost HP</button>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+          <span style="font-size:0.85rem; color:var(--text-muted)">Buy energy (max 5/24h)</span>
+          <button id="buyEnergyBtn" class="btn-buyin btn-small" onclick="buyEnergy()">+1 Energy (1 HIVE)</button>
+        </div>
+        <div id="energyPurchaseInfo" style="font-size:0.75rem; color:var(--text-muted);">Energy purchases today: 0/5</div>
+      </div>
+
+      <div class="card-header" style="margin-top:10px;">
+        <h2>🍃 Ascension</h2>
+      </div>
+      <div style="background:var(--card-inner); padding:10px; border-radius:8px; border:1px solid var(--egg-gold); font-size:0.85rem; display:flex; flex-direction:column; gap:6px;">
+        <p>Pending Golden Leaves: <b id="pendingLeavesText" style="color:var(--egg-gold)">0 🍃</b></p>
+        <div style="font-size:0.75rem; color:var(--text-muted); line-height:1.4;">
+          Ascending grants Golden Leaves, which represent long-term progress and prestige. Fertilizer gives you extra leaves immediately for stronger rank and reward potential.
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-small" style="flex:1;" onclick="prestige(0)">Ascend</button>
+          <button class="btn-buyin btn-small" style="flex:1;" onclick="buyFertilizer()">Fertilizer (10 HIVE)</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="hangModal" class="modal">
+    <div class="modal-content">
+      <span class="close-modal" onclick="closeHangModal()">&times;</span>
+      <h2>📣 Share a SlothBuzz Hangs Post</h2>
+      <p style="font-size:0.9rem; color:var(--text-muted);">Post a short milestone update to slothbuzz.com/hangs using Hive Keychain.</p>
+      <textarea id="hangMessageInput" rows="4" style="width:100%; background:#0a0e0b; border:2px solid var(--border-color); color:var(--text-light); border-radius:10px; padding:10px; resize:none;" maxlength="200" placeholder="I just hit 100k eggs and unlocked a legendary sloth! 🚀"></textarea>
+      <div style="display:flex; justify-content:space-between; gap:10px;">
+        <button class="btn-small" onclick="postHangUpdate(false)">Post Hang</button>
+        <button class="btn-small btn-health" onclick="postHangUpdate(true)">Post + Reward</button>
+      </div>
+      <div style="font-size:0.8rem; color:var(--text-muted);">Note: paid post option sends a small HIVE memo to reward the treasury.</div>
+    </div>
+  </div>
+
+  <script>
+    const GAME_TREASURY_ACCOUNT = "sloth-miner";
+    const SLOTHBUZZ_TOKEN_SYMBOL = "SLOTHBUZZ";
+    const HIVE_CUSTOM_JSON_ID = "sloth_idle_hatcher_v1";
+    const HIVE_API_NODES = [
+      "https://api.hive.blog",
+      "https://api.hivekings.com",
+      "https://anyx.io",
+      "https://api.openhive.network"
+    ];
+
+    let currentUser = null;
+    let leaderboardFocusNearby = false;
+    let fullPrizePool = 500.000;
+    let cycleEndTime = getNextMondayNoonTimestamp();
+
+    function formatNumber(num) {
+      if (num === null || num === undefined || isNaN(num)) return '0';
+      const absVal = Math.abs(num);
+      if (absVal < 1000) return num.toLocaleString(undefined, { maximumFractionDigits: 0 });
+      const suffixes = [
+        { value: 1e12, suffix: 'T' },
+        { value: 1e9, suffix: 'B' },
+        { value: 1e6, suffix: 'M' },
+        { value: 1e3, suffix: 'K' }
+      ];
+      for (const entry of suffixes) {
+        if (absVal >= entry.value) {
+          return (num / entry.value).toFixed(2).replace(/\.0+$|([0-9]*[1-9])0+$/, '$1') + entry.suffix;
+        }
+      }
+      return num.toString();
+    }
+
+    function getNextMondayNoonTimestamp() {
+      const now = new Date();
+      const result = new Date(now);
+      result.setHours(12, 0, 0, 0);
+      const currentDay = now.getDay();
+      let daysUntilMonday = (1 - currentDay + 7) % 7;
+      if (daysUntilMonday === 0 && now.getTime() >= result.getTime()) daysUntilMonday = 7;
+      result.setDate(result.getDate() + daysUntilMonday);
+      return result.getTime();
+    }
+
+    function sanitizeInput(str) {
+      return String(str).replace(/[^a-zA-Z0-9_.-]/g, '');
+    }
+
+    function sanitizeHangMessage(str) {
+      return String(str)
+        .replace(/<[^>]*>/g, '')
+        .replace(/[\u0000-\u001F\u007F]/g, '')
+        .trim()
+        .slice(0, 200);
+    }
+
+    const AI_LEADERBOARD_ENTRIES = [
+      { name: 'SlothKing', score: 17800 },
+      { name: 'HiveHerder', score: 14350 },
+      { name: 'LeafLord', score: 12400 },
+      { name: 'EggSage', score: 9600 },
+      { name: 'ForestFury', score: 8200 }
+    ];
+
+    function getLeaderboardEntries(focusNearby = false) {
+      const entries = AI_LEADERBOARD_ENTRIES.map((entry) => ({ ...entry }));
+      const playerEntry = currentUser ? { name: `@${currentUser}`, score: Math.floor(Math.max(gameState.weeklyHiveEarned || 0, gameState.gems || 0)) } : null;
+      if (playerEntry) {
+        entries.push(playerEntry);
+      }
+      entries.sort((a, b) => b.score - a.score);
+      if (!playerEntry || !focusNearby) {
+        return entries.slice(0, 5);
+      }
+      const playerIndex = entries.findIndex((entry) => entry.name === playerEntry.name);
+      if (playerIndex < 5) {
+        return entries.slice(0, 5);
+      }
+      let start = Math.max(0, playerIndex - 2);
+      let end = Math.min(entries.length, playerIndex + 3);
+      let selected = entries.slice(start, end);
+      if (selected.length < 5) {
+        const extra = 5 - selected.length;
+        start = Math.max(0, start - extra);
+        selected = entries.slice(start, end);
+      }
+      return selected.slice(0, 5);
+    }
+
+    function getLeaderboardTop10() {
+      const entries = AI_LEADERBOARD_ENTRIES.map((entry) => ({ ...entry }));
+      if (currentUser) {
+        entries.push({ name: `@${currentUser}`, score: Math.floor(Math.max(gameState.weeklyHiveEarned || 0, gameState.gems || 0)) });
+      }
+      entries.sort((a, b) => b.score - a.score);
+      return entries.slice(0, 10);
+    }
+
+    function createDefaultGameState() {
+      return {
+        gems: 0,
+        totalLifetimeGems: 0,
+        lifetimeHatchedGems: 0,
+        weeklyHatchedGems: 0,
+        lifetimeMinersUnlocked: 1,
+        weeklyMinersUnlocked: 1,
+        lifetimeBossDamage: 0,
+        weeklyBossDamage: 0,
+        lifetimeBossesDefeated: 0,
+        weeklyBossesDefeated: 0,
+        lifetimeHiveEarned: 0,
+        weeklyHiveEarned: 0,
+        cps: 0,
+        goldenLeaves: 0,
+        ascensionCount: 0,
+        energy: 5,
+        slothHp: 100,
+        slothMaxHp: 100,
+        hasPaidBuyIn: false,
+        frenzyUntil: 0,
+        coffeeBoostUntil: 0,
+        coffeeBoostMultiplier: 0,
+        coffeeItemName: "",
+        lastFreeSpinTime: 0,
+        lastTimestamp: Date.now(),
+        energyPurchases: [],
+        miners: {
+          unit1: { name: "Nap Time Sloth", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640019830308905/67913b9e-7257-44d8-80b1-018c906f38cc.png?ex=6a69f26d&is=6a68a0ed&hm=5abf1c7153f26e6ea2da7ee6adf1c49429304cb2673119432a540e097283d8e8&", emoji: "🦥", level: 1, baseCps: 1, unlocked: true, baseCost: 150 },
+          unit2: { name: "Hammock Lounger", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640043922260039/19d7d5cf-549f-4bdd-b8e7-07aca5786b18.png?ex=6a69f272&is=6a68a0f2&hm=81ba411be42c368035300543e74b1aac02e65c5fea611a4bb0b89f0e2cb6a512&", emoji: "🌿", level: 0, baseCps: 5, unlocked: false, baseCost: 1000 },
+          unit3: { name: "Tree Forager", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640062909878424/76b3dfad-1691-403d-a603-1913142511ed.png?ex=6a69f277&is=6a68a0f7&hm=60a664f9d59f1b2bde7dd89c30db9c14c0ca5133ed5363928afb0a2852128e26&", emoji: "🍃", level: 0, baseCps: 20, unlocked: false, baseCost: 5000 },
+          unit4: { name: "Cosmic Zen Sloth", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640089430724779/78505e37-8123-48e8-a3d9-e296bd0db245.png?ex=6a69f27d&is=6a68a0fd&hm=9d17b845499898f8b2f9facceb2bfe10f7683e44bcde0a7f96e9282a97fcff43&", emoji: "✨", level: 0, baseCps: 90, unlocked: false, baseCost: 25000 },
+          unit5: { name: "Jungle Harvester", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640111375061022/4c07c1c6-b324-4861-a869-c8b0301dcc90.png?ex=6a69f283&is=6a68a103&hm=bb89ddfb22f4fc8aa5fb6a941899c44bc04c2941879879ab5692432bcdc35fcc&", emoji: "🌴", level: 0, baseCps: 350, unlocked: false, baseCost: 100000 },
+          unit6: { name: "Canopy Climber", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640130203422761/f651a235-a48e-42d3-96cc-fe56bc9804f6.png?ex=6a69f287&is=6a68a107&hm=088daa1362d78ffdeb9da3fabb218c45ed58869b26f022810f0a942e45ba2e70&", emoji: "🌳", level: 0, baseCps: 1200, unlocked: false, baseCost: 450000 },
+          unit7: { name: "Mystic Shaman", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640147806912643/578c1479-6223-46d4-a2c1-b32f01d29e3d.png?ex=6a69f28b&is=6a68a10b&hm=3f9ea75bbc351234eacabe0c0ec4b5487701bd969c808f7c4b5b3688ba2fdf66&", emoji: "🍄", level: 0, baseCps: 4500, unlocked: false, baseCost: 2000000 },
+          unit8: { name: "Solar Overlord", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640168593883226/7bca0074-60cc-47d4-8144-32698e0b4106.png?ex=6a69f290&is=6a68a110&hm=e32e455b10f69873e23eb21b8d92aa066e0b9be8162ea3286be689a0c15cf08b&", emoji: "☀️", level: 0, baseCps: 12000, unlocked: false, baseCost: 8000000 },
+          unit9: { name: "👑 Legendary Sloth", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640188927873064/ab70065e-7d56-459c-bac5-b851192a452c.png?ex=6a69f295&is=6a68a115&hm=8788aa513a7ba5d929e66afa5cae2cb9328a491743c7f4d40e8bbde8440992d1&", emoji: "👑", level: 0, baseCps: 25000, unlocked: false, baseCost: 30000000, isLegendary: true }
+        }
+      };
+    }
+
+    let gameState = createDefaultGameState();
+    let bossState = { level: 1, maxHp: 10000, currentHp: 10000, playerDamage: 0 };
+
+    async function callHiveApi(method, params) {
+      for (const node of HIVE_API_NODES) {
+        try {
+          const res = await fetch(node, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ jsonrpc: "2.0", method: method, params: params, id: 1 })
+          });
+          const json = await res.json();
+          if (json.result) return json.result;
+        } catch (e) {
+          console.warn("Hive node fallback triggered", e);
+        }
+      }
+      throw new Error("All Hive API nodes unreachable.");
+    }
+
+    async function fetchRealHiveAccountData() {
+      if (!currentUser) return alert("Connect account first!");
+      try {
+        const accounts = await callHiveApi("condenser_api.get_accounts", [[currentUser]]);
+        if (accounts && accounts.length > 0) {
+          const acc = accounts[0];
+          document.getElementById('apiAccountMeta').innerText = `@${acc.name}`;
+          document.getElementById('apiHiveBal').innerText = acc.balance.split(" ")[0];
+          document.getElementById('apiHivePower').innerText = (parseFloat(acc.vesting_shares) / 2000).toFixed(3);
+        } else {
+          alert(`No Hive account data found for @${currentUser}.`);
+        }
+      } catch (err) {
+        console.warn('Unable to fetch Hive account data', err);
+        alert('Unable to fetch Hive account data. Check your network or Hive node connection.');
+      }
+    }
+
+    async function fetchLivePrizePoolData() {
+      try {
+        const accounts = await callHiveApi("condenser_api.get_accounts", [[GAME_TREASURY_ACCOUNT]]);
+        if (accounts && accounts.length > 0) {
+          const treasury = accounts[0];
+          const balanceValue = parseFloat(treasury.balance.split(" ")[0]);
+          if (!isNaN(balanceValue)) {
+            fullPrizePool = balanceValue;
+          }
+        }
+      } catch (err) {
+        console.warn('Unable to fetch live prize pool from treasury account', err);
+      } finally {
+        updateUI();
+      }
+    }
+
+    function getStateSnapshot() {
+      return {
+        gems: Math.floor(gameState.gems),
+        totalLifetimeGems: Math.floor(gameState.totalLifetimeGems),
+        lifetimeHatchedGems: Math.floor(gameState.lifetimeHatchedGems),
+        weeklyHatchedGems: Math.floor(gameState.weeklyHatchedGems),
+        lifetimeBossDamage: Math.floor(gameState.lifetimeBossDamage),
+        weeklyBossDamage: Math.floor(gameState.weeklyBossDamage),
+        lifetimeBossesDefeated: gameState.lifetimeBossesDefeated,
+        weeklyBossesDefeated: gameState.weeklyBossesDefeated,
+        lifetimeHiveEarned: parseFloat(gameState.lifetimeHiveEarned.toFixed(3)),
+        weeklyHiveEarned: parseFloat(gameState.weeklyHiveEarned.toFixed(3)),
+        cps: gameState.cps,
+        goldenLeaves: gameState.goldenLeaves,
+        ascensionCount: gameState.ascensionCount,
+        energy: gameState.energy,
+        slothHp: gameState.slothHp,
+        slothMaxHp: gameState.slothMaxHp,
+        hasPaidBuyIn: gameState.hasPaidBuyIn,
+        frenzyUntil: gameState.frenzyUntil,
+        coffeeBoostUntil: gameState.coffeeBoostUntil,
+        coffeeBoostMultiplier: gameState.coffeeBoostMultiplier,
+        coffeeItemName: gameState.coffeeItemName,
+        lastTimestamp: gameState.lastTimestamp,
+        energyPurchases: Array.isArray(gameState.energyPurchases) ? [...gameState.energyPurchases] : [],
+        miners: JSON.parse(JSON.stringify(gameState.miners))
+      };
+    }
+
+    function pruneEnergyPurchases() {
+      if (!Array.isArray(gameState.energyPurchases)) {
+        gameState.energyPurchases = [];
+      }
+      const cutoff = Date.now() - 86400000;
+      gameState.energyPurchases = gameState.energyPurchases.filter((ts) => ts > cutoff);
+    }
+
+    function getEnergyPurchasesLast24h() {
+      pruneEnergyPurchases();
+      return gameState.energyPurchases.length;
+    }
+
+    function updateEnergyPurchaseInfo() {
+      const info = document.getElementById('energyPurchaseInfo');
+      if (info) {
+        info.innerText = `Energy purchases today: ${getEnergyPurchasesLast24h()}/5`;
+      }
+    }
+
+    function accrueIdleProduction(untilTimestamp) {
+      if (!untilTimestamp || untilTimestamp <= gameState.lastTimestamp) {
+        gameState.lastTimestamp = Math.max(gameState.lastTimestamp, untilTimestamp || Date.now());
+        return;
+      }
+      recalculateCps();
+      const elapsedSeconds = (untilTimestamp - gameState.lastTimestamp) / 1000;
+      if (elapsedSeconds <= 0 || gameState.cps <= 0) {
+        gameState.lastTimestamp = untilTimestamp;
+        return;
+      }
+      const produced = elapsedSeconds * gameState.cps;
+      gameState.gems += produced;
+      gameState.totalLifetimeGems += produced;
+      gameState.weeklyHatchedGems += produced;
+      gameState.lifetimeHatchedGems += produced;
+      gameState.lastTimestamp = untilTimestamp;
+    }
+
+    function applyActionEvent(actionPacket) {
+      const action = actionPacket.action;
+      const payload = actionPacket.payload || {};
+      switch (action) {
+        case 'buy_in_paid':
+          gameState.hasPaidBuyIn = true;
+          break;
+        case 'weekly_reset':
+          gameState.weeklyHatchedGems = 0;
+          gameState.weeklyBossDamage = 0;
+          gameState.weeklyBossesDefeated = 0;
+          gameState.weeklyHiveEarned = 0;
+          break;
+        case 'buy_coffee':
+          gameState.gems -= payload.cost || 0;
+          const coffeeExpiry = Date.now() + (payload.durationMs || 0);
+          gameState.coffeeBoostUntil = Math.max(gameState.coffeeBoostUntil || 0, coffeeExpiry);
+          gameState.coffeeBoostMultiplier = Math.max(gameState.coffeeBoostMultiplier || 0, payload.boostPercent || 0);
+          if (!gameState.coffeeItemName || payload.boostPercent >= gameState.coffeeBoostMultiplier || coffeeExpiry >= (gameState.coffeeBoostUntil || 0)) {
+            gameState.coffeeItemName = payload.name || gameState.coffeeItemName;
+          }
+          break;
+        case 'convert_health':
+          gameState.gems -= payload.eggsSpent || 0;
+          gameState.slothHp += payload.hpGained || 0;
+          gameState.slothMaxHp += payload.hpGained || 0;
+          break;
+        case 'attack_boss':
+          const damage = payload.damage || 0;
+          bossState.currentHp = Math.max(0, bossState.currentHp - damage);
+          gameState.energy = Math.max(0, gameState.energy - 1);
+          gameState.weeklyBossDamage += damage;
+          gameState.lifetimeBossDamage += damage;
+          if (bossState.currentHp <= 0) {
+            bossState.level += 1;
+            bossState.maxHp = Math.floor(bossState.maxHp * 1.3);
+            bossState.currentHp = bossState.maxHp;
+            gameState.weeklyBossesDefeated += 1;
+            gameState.lifetimeBossesDefeated += 1;
+            const reward = Math.max(50, Math.floor(bossState.level * 10));
+            gameState.gems += reward;
+            gameState.weeklyHiveEarned += reward;
+            gameState.lifetimeHiveEarned += reward;
+          }
+          break;
+        case 'attack_target':
+          gameState.energy = Math.max(0, gameState.energy - 1);
+          gameState.gems += payload.stolenEggs || 0;
+          break;
+        case 'ascend':
+          gameState.goldenLeaves += payload.leavesGained || 0;
+          gameState.ascensionCount += 1;
+          break;
+        case 'golden_sloth':
+          gameState.gems += payload.gems || 0;
+          gameState.frenzyUntil = Math.max(gameState.frenzyUntil || 0, Date.now() + (payload.frenzyMs || 0));
+          break;
+        case 'spin_wheel':
+          if (payload.reward) {
+            gameState.gems += payload.reward.gems || 0;
+            gameState.energy = Math.min(5, gameState.energy + (payload.reward.energy || 0));
+            if (payload.reward.frenzyMs) {
+              gameState.frenzyUntil = Math.max(gameState.frenzyUntil || 0, Date.now() + payload.reward.frenzyMs);
+            }
+            gameState.goldenLeaves += payload.reward.leaves || 0;
+          }
+          if (payload.wheelType === 'daily') {
+            gameState.lastFreeSpinTime = payload.timestamp || gameState.lastFreeSpinTime;
+          }
+          break;
+        case 'buy_energy':
+          gameState.energy = Math.min(5, gameState.energy + 1);
+          if (payload.timestamp) {
+            gameState.energyPurchases = gameState.energyPurchases || [];
+            gameState.energyPurchases.push(payload.timestamp);
+            pruneEnergyPurchases();
+          }
+          break;
+        case 'upgrade_unit':
+          if (gameState.miners[payload.unitKey]) {
+            const unit = gameState.miners[payload.unitKey];
+            unit.level += payload.levels || 0;
+            unit.unlocked = true;
+            gameState.gems -= payload.costPaid || 0;
+            recalculateCps();
+          }
+          break;
+        default:
+          console.warn('Unknown action event:', action);
+      }
+    }
+
+    function loadStateFromHiveBlockchain() {
+      if (!currentUser) return;
+      callHiveApi('condenser_api.get_account_history', [currentUser, -1, 200])
+        .then((history) => {
+          const historyEvents = [];
+          if (!Array.isArray(history)) {
+            updateUI();
+            updateBuyInDisplay();
+            return;
+          }
+          history.forEach((entry) => {
+            const op = entry[1].op;
+            if (op[0] === 'custom_json' && op[1].id === HIVE_CUSTOM_JSON_ID) {
+              try {
+                const parsed = JSON.parse(op[1].json);
+                if (parsed && parsed.user === currentUser && parsed.action) {
+                  historyEvents.push(parsed);
+                }
+              } catch (err) {
+                console.warn('Invalid JSON payload in account history', err);
+              }
+            }
+          });
+          historyEvents.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+          gameState = createDefaultGameState();
+          bossState = { level: 1, maxHp: 10000, currentHp: 10000, playerDamage: 0 };
+          if (historyEvents.length > 0) {
+            gameState.lastTimestamp = historyEvents[0].timestamp || gameState.lastTimestamp;
+          }
+          historyEvents.forEach((event) => {
+            if (event.timestamp) {
+              accrueIdleProduction(event.timestamp);
+            }
+            applyActionEvent(event);
+            recalculateCps();
+            gameState.lastTimestamp = event.timestamp || gameState.lastTimestamp;
+          });
+          accrueIdleProduction(Date.now());
+          gameState.gems = Math.max(0, gameState.gems);
+          recalculateCps();
+          updateUI();
+          updateBuyInDisplay();
+        })
+        .catch((err) => {
+          console.warn('Error loading Hive state', err);
+          updateUI();
+          updateBuyInDisplay();
+        });
+    }
+
+    window.getKeychainStatusText = function () {
+      if (!window.hive_keychain) return 'Keychain not detected';
+      if (!currentUser) return 'Keychain available';
+      return `Connected: @${currentUser}`;
+    };
+
+    window.updateKeychainStatus = function () {
+      const statusEl = document.getElementById('keychainStatus');
+      if (!statusEl) return;
+      const hasKeychain = !!window.hive_keychain;
+      statusEl.innerText = window.getKeychainStatusText();
+      statusEl.style.color = hasKeychain ? (currentUser ? '#2ecc71' : '#f1c40f') : '#e74c3c';
+    };
+
+    function updateBuyInDisplay() {
+      const overlay = document.getElementById('buyInOverlay');
+      const buyInBtn = document.getElementById('buyInBtn');
+      if (gameState.hasPaidBuyIn) {
+        if (overlay) overlay.style.display = 'none';
+        if (buyInBtn) buyInBtn.disabled = true;
+      } else {
+        if (overlay) overlay.style.display = 'flex';
+        if (buyInBtn) buyInBtn.disabled = !(!!currentUser && !!window.hive_keychain);
+      }
+    }
+
+    function updateSyncButtons() {
+      const enabled = !!currentUser && !!window.hive_keychain;
+      const fetchApiBtn = document.getElementById('fetchApiBtn');
+      if (fetchApiBtn) fetchApiBtn.disabled = !enabled;
+      document.getElementById('buyInBtn').disabled = !enabled || gameState.hasPaidBuyIn;
+      updateKeychainStatus();
+      updateBuyInDisplay();
+    }
+
+    function spawnGoldenSloth() {
+      const sloth = document.getElementById('goldenSloth');
+      if (!sloth || sloth.style.display === 'block') return;
+      const left = Math.random() * 60 + 20;
+      const top = Math.random() * 55 + 10;
+      sloth.style.left = `${left}%`;
+      sloth.style.top = `${top}%`;
+      sloth.style.display = 'block';
+      setTimeout(() => {
+        if (sloth.style.display === 'block') sloth.style.display = 'none';
+      }, 12000);
+    }
+
+    function connectKeychain() {
+      const username = sanitizeInput(document.getElementById('username').value.trim().toLowerCase());
+      if (!username) return alert("Hive username required.");
+      if (!window.hive_keychain) {
+        updateKeychainStatus();
+        return alert("Hive Keychain is required for on-chain actions.");
+      }
+
+      window.hive_keychain.requestSignBuffer(username, "Auth_" + Date.now(), "Posting", (res) => {
+        const success = res && (res.success === true || res.result || res.error == null);
+        if (success) {
+          currentUser = username;
+          document.getElementById('loginBtn').innerText = "Connected";
+          document.getElementById('loginBtn').disabled = true;
+          updateSyncButtons();
+          fetchRealHiveAccountData();
+          loadStateFromHiveBlockchain();
+          updateBuyInDisplay();
+        } else {
+          console.warn('Keychain sign buffer failed', res);
+          updateKeychainStatus();
+          alert("Keychain signature failed or was canceled.");
+        }
+      });
+    }
+
+    function openHangModal() {
+      if (!currentUser || !window.hive_keychain) return alert('Connect Hive Keychain before posting a Hang.');
+      document.getElementById('hangMessageInput').value = `I just reached ${formatNumber(gameState.weeklyHatchedGems)} eggs and unlocked ${formatNumber(gameState.goldenLeaves)} golden leaves! #SlothBuzz`;
+      document.getElementById('hangModal').style.display = 'flex';
+    }
+
+    function closeHangModal() {
+      document.getElementById('hangModal').style.display = 'none';
+    }
+
+    function postHangUpdate(useReward) {
+      if (!currentUser || !window.hive_keychain) return alert('Connect Hive Keychain first.');
+      const message = sanitizeHangMessage(document.getElementById('hangMessageInput').value);
+      if (!message) return alert('Please enter a short milestone message.');
+      const payload = {
+        type: 'hang_post',
+        message,
+        milestone: {
+          eggs: gameState.weeklyHatchedGems,
+          leaves: gameState.goldenLeaves,
+          bosses: gameState.weeklyBossesDefeated
+        },
+        timestamp: Date.now()
+      };
+
+      const submitPost = () => {
+        window.hive_keychain.requestCustomJson(
+          currentUser,
+          HIVE_CUSTOM_JSON_ID,
+          'Posting',
+          JSON.stringify(payload),
+          'Share milestone to SlothBuzz Hangs',
+          (res) => {
+            if (!res) return alert('Hive Keychain response missing.');
+            const success = res.success === true || res.error === null || res.result;
+            if (success) {
+              closeHangModal();
+              alert('🎉 Hang posted successfully to slothbuzz.com/hangs!');
+            } else {
+              console.warn('Hang post failed', res);
+              alert('Unable to post Hang.');
+            }
+          }
+        );
+      };
+
+      if (useReward) {
+        window.hive_keychain.requestTransfer(
+          currentUser,
+          GAME_TREASURY_ACCOUNT,
+          '0.005',
+          `hang_post_reward_${Date.now()}`,
+          'HIVE',
+          (transferRes) => {
+            const transferSuccess = transferRes && (transferRes.success === true || transferRes.error === null || transferRes.result);
+            if (!transferSuccess) return alert('HIVE transfer failed; Hang not posted.');
+            submitPost();
+          }
+        );
+      } else {
+        submitPost();
+      }
+    }
+
+    function createActionPacket(actionType, payload = {}) {
+      return {
+        app: "sloth_idle_hatcher",
+        version: "1.0.0",
+        action: actionType,
+        user: currentUser,
+        timestamp: Date.now(),
+        payload: payload,
+        stateSnapshot: getStateSnapshot()
+      };
+    }
+
+    function dispatchAction(actionType, payload = {}, onSuccess = null) {
+      if (!currentUser || !window.hive_keychain) return alert("Keychain required for secure custom-json signing.");
+      const actionPacket = createActionPacket(actionType, payload);
+      window.hive_keychain.requestCustomJson(
+        currentUser,
+        HIVE_CUSTOM_JSON_ID,
+        "Posting",
+        JSON.stringify(actionPacket),
+        `Verify Action: ${actionType}`,
+        (response) => {
+          if (!response) {
+            console.warn("Keychain returned an empty response.");
+            return;
+          }
+          const success = response.success === true || response.error === null || response.result;
+          if (success) {
+            accrueIdleProduction(actionPacket.timestamp);
+            applyActionEvent(actionPacket);
+            gameState.lastTimestamp = actionPacket.timestamp;
+            updateUI();
+            if (typeof onSuccess === 'function') onSuccess();
+            document.getElementById('syncStatus').innerText = "🛡️ Verified On-Chain";
+          } else {
+            console.warn("Keychain response warning:", response);
+            document.getElementById('syncStatus').innerText = "⚠️ Action not saved on chain.";
+          }
+        }
+      );
+    }
+
+    function payBuyIn() {
+      if (!currentUser) return;
+      if (!window.hive_keychain) return alert("Hive Keychain required.");
+
+      window.hive_keychain.requestTransfer(
+        currentUser,
+        GAME_TREASURY_ACCOUNT,
+        "1.000",
+        `jungle_pass_${Date.now()}`,
+        "HIVE",
+        (res) => {
+          if (!res) return;
+          const success = res.success === true || res.error === null || res.result;
+          if (success) {
+            dispatchAction('buy_in_paid', {}, () => {
+              gameState.hasPaidBuyIn = true;
+              document.getElementById('buyInOverlay').style.display = 'none';
+              openPvpModal();
+            });
+          } else {
+            alert("Buy-in transaction was canceled or failed.");
+          }
+        }
+      );
+    }
+
+    function openPvpModal() {
+      document.getElementById('pvpModal').style.display = 'flex';
+    }
+
+    function closePvpModal() {
+      document.getElementById('pvpModal').style.display = 'none';
+    }
+
+    function openWheelModal() {
+      const display = document.getElementById('wheelDisplay');
+      if (display) display.innerText = '🎁';
+      document.getElementById('wheelModal').style.display = 'flex';
+    }
+
+    function closeWheelModal() {
+      document.getElementById('wheelModal').style.display = 'none';
+    }
+
+    function claimGoldenSloth(event) {
+      event.stopPropagation();
+      if (!currentUser || !window.hive_keychain) return alert('Connect Hive Keychain first to claim the golden sloth bonus.');
+      const reward = {
+        gems: 150,
+        frenzyMs: 60000
+      };
+      dispatchAction('golden_sloth', reward, () => {
+        gameState.gems += reward.gems;
+        gameState.frenzyUntil = Date.now() + reward.frenzyMs;
+        updateUI();
+        document.getElementById('goldenSloth').style.display = 'none';
+        alert('✨ Golden Sloth Claimed! +150 Eggs and 3x Frenzy for 60 sec.');
+      });
+    }
+
+    function spinWheel(isFree) {
+      if (!currentUser || !window.hive_keychain) return alert('Connect Hive Keychain first to spin.');
+      const now = Date.now();
+      if (isFree && gameState.lastFreeSpinTime && now - gameState.lastFreeSpinTime < 86400000) {
+        return alert('Free spin is available once per day.');
+      }
+
+      const production = Math.max(1, Math.floor(gameState.cps));
+      const freeEggCap = Math.min(2500, Math.max(150, production * 4));
+      const paidEggCap = Math.min(8000, Math.max(400, production * 8));
+      const leafReward = Math.max(1, Math.min(10, Math.floor(production / 120)));
+      const energyReward = isFree ? 1 : 2;
+      const frenzyMs = isFree ? 90000 : 180000;
+
+      const eggReward = Math.floor(Math.random() * (isFree ? freeEggCap : paidEggCap)) + (isFree ? 50 : 150);
+      const choices = [
+        { label: `+${eggReward} Eggs`, gems: Math.max(50, eggReward) },
+        { label: `+${energyReward} Energy`, energy: energyReward },
+        { label: `☕ ${isFree ? 'Coffee' : 'Frenzy'} Boost`, frenzyMs, gems: isFree ? 100 : 150 },
+        { label: `🍃 +${leafReward} Leaves`, leaves: leafReward }
+      ];
+
+      if (!isFree) {
+        const bonusEgg = Math.max(500, Math.min(2000, production * 3));
+        choices.push({ label: `Mega Egg Cache +${bonusEgg} Eggs`, gems: bonusEgg });
+      }
+
+      const result = choices[Math.floor(Math.random() * choices.length)];
+      const payload = {
+        wheelType: isFree ? 'daily' : 'paid',
+        reward: result,
+        timestamp: now
+      };
+
+      const afterSpin = () => {
+        document.getElementById('wheelDisplay').innerText = `🎉 ${result.label}!`;
+        if (isFree) {
+          alert(`Free spin complete: ${result.label}`);
+        } else {
+          alert(`Paid spin complete: ${result.label}`);
+        }
+      };
+
+      if (!isFree) {
+        window.hive_keychain.requestTransfer(
+          currentUser,
+          GAME_TREASURY_ACCOUNT,
+          '1.000',
+          `spin_wheel_${now}`,
+          'HIVE',
+          (res) => {
+            if (!res) return;
+            const success = res.success === true || res.error === null || res.result;
+            if (success) {
+              dispatchAction('spin_wheel', payload, () => {
+                afterSpin();
+                closeWheelModal();
+              });
+            } else {
+              alert('Paid spin failed or was canceled.');
+            }
+          }
+        );
+      } else {
+        dispatchAction('spin_wheel', payload, () => {
+          afterSpin();
+          closeWheelModal();
+        });
+      }
+    }
+
+    function setMaxBossAttack() {
+      const attackInput = document.getElementById('gemAttackAmount');
+      attackInput.value = Math.max(1, Math.floor(gameState.gems));
+    }
+
+    function convertEggsToHealth() {
+      const val = parseInt(document.getElementById('healthConvertInput').value) || 0;
+      if (val < 1000 || gameState.gems < val) return alert("Insufficient eggs or below min threshold (1000).");
+      const hpGain = Math.floor(val / 100);
+      dispatchAction('convert_health', { eggsSpent: val, hpGained: hpGain });
+    }
+
+    function attackBoss() {
+      const amount = parseInt(document.getElementById('gemAttackAmount').value) || 0;
+      if (!gameState.hasPaidBuyIn) return alert("Pay your jungle pass first.");
+      if (gameState.energy < 1) return alert("⚡ Out of energy!");
+      if (amount < 1 || amount > gameState.gems) return alert("Invalid attack amount.");
+      const damage = Math.min(amount * 10, bossState.currentHp);
+      dispatchAction('attack_boss', { damage, eggsUsed: amount });
+    }
+
+    function attackPvpTarget(targetUser, estLoot) {
+      if (gameState.energy < 1) return alert("⚡ Out of energy!");
+      const stolen = Math.floor(estLoot * 0.1);
+      dispatchAction('attack_target', { target: targetUser, stolenEggs: stolen });
+    }
+
+    function attackCustomTarget() {
+      const target = sanitizeInput(document.getElementById('raidTargetInput').value);
+      if (target) attackPvpTarget(target, 5000);
+    }
+
+    function buyCoffeeBoost(cost, durationMs, boostPercent, name) {
+      if (!currentUser || !window.hive_keychain) return alert("Connect Hive Keychain to purchase with SlothBuzz.");
+      const tokenAmount = cost.toFixed ? cost.toFixed(3) : Number(cost).toFixed(3);
+      const memo = `Coffee Boost: ${name}`;
+      window.hive_keychain.requestSendToken(
+        currentUser,
+        GAME_TREASURY_ACCOUNT,
+        tokenAmount,
+        memo,
+        SLOTHBUZZ_TOKEN_SYMBOL,
+        (res) => {
+          if (!res) {
+            return alert("SlothBuzz token transfer failed.");
+          }
+          const success = res.success === true || res.error === null || res.result;
+          if (success) {
+            dispatchAction('buy_coffee', { cost, durationMs, boostPercent, name });
+          } else {
+            console.warn('SlothBuzz transfer failed', res);
+            alert('SlothBuzz payment failed or was canceled.');
+          }
+        }
+      );
+    }
+
+    function buyFertilizer() {
+      if (!currentUser) return;
+      if (!window.hive_keychain) return alert("Hive Keychain required.");
+      window.hive_keychain.requestTransfer(
+        currentUser,
+        GAME_TREASURY_ACCOUNT,
+        '10.000',
+        `fertilizer_${Date.now()}`,
+        'HIVE',
+        (res) => {
+          if (!res) return;
+          const success = res.success === true || res.error === null || res.result;
+          if (success) {
+            dispatchAction('ascend', { leavesGained: 5 });
+          } else {
+            alert('Fertilizer purchase failed or was canceled.');
+          }
+        }
+      );
+    }
+
+    function buyEnergy() {
+      if (!currentUser) return;
+      if (!window.hive_keychain) return alert("Hive Keychain required.");
+      pruneEnergyPurchases();
+      if (gameState.energy >= 5) return alert('Energy is already full.');
+      if (getEnergyPurchasesLast24h() >= 5) return alert('Maximum 5 energy purchases allowed per 24 hours.');
+      const now = Date.now();
+      window.hive_keychain.requestTransfer(
+        currentUser,
+        GAME_TREASURY_ACCOUNT,
+        '1.000',
+        `energy_${now}`,
+        'HIVE',
+        (res) => {
+          if (!res) return;
+          const success = res.success === true || res.error === null || res.result;
+          if (success) {
+            dispatchAction('buy_energy', { timestamp: now });
+          } else {
+            alert('Energy purchase failed or was canceled.');
+          }
+        }
+      );
+    }
+
+    function prestige(fee) {
+      if (fee && gameState.gems < fee * 1000) return alert("Not enough eggs to fertilize.");
+      const leaves = fee ? 5 : 1;
+      dispatchAction('ascend', { leavesGained: leaves });
+    }
+
+    function getUpgradeCost(key, levels = 1) {
+      const unit = gameState.miners[key];
+      if (!unit || levels < 1) return 0;
+      const startCost = unit.baseCost * Math.pow(2, unit.level);
+      return Math.floor(startCost * (Math.pow(2, levels) - 1));
+    }
+
+    function getMaxUpgradeCount(key) {
+      const unit = gameState.miners[key];
+      if (!unit) return 0;
+      let count = 0;
+      let totalCost = 0;
+      let level = unit.level;
+      while (true) {
+        const nextCost = unit.baseCost * Math.pow(2, level);
+        if (gameState.gems >= totalCost + nextCost) {
+          totalCost += nextCost;
+          level += 1;
+          count += 1;
+          if (count >= 100) break;
+        } else {
+          break;
+        }
+      }
+      return count;
+    }
+
+    function upgradeUnit(key, count) {
+      const unit = gameState.miners[key];
+      if (!unit || count < 1) return;
+      const maxCount = getMaxUpgradeCount(key);
+      if (maxCount <= 0) return alert("Not enough eggs!");
+      const purchaseCount = Math.min(count, maxCount);
+      const cost = getUpgradeCost(key, purchaseCount);
+      dispatchAction('upgrade_unit', { unitKey: key, levels: purchaseCount, costPaid: cost });
+    }
+
+    function recalculateCps() {
+      let total = 0;
+      for (const k in gameState.miners) {
+        const unit = gameState.miners[k];
+        if (unit.unlocked) total += unit.baseCps * Math.pow(2, unit.level);
+      }
+      let multiplier = 1;
+      if (gameState.coffeeBoostUntil > Date.now()) multiplier += gameState.coffeeBoostMultiplier;
+      if (gameState.frenzyUntil > Date.now()) multiplier += 2;
+      gameState.cps = Math.floor(total * multiplier);
+    }
+
+    function updateUI() {
+      document.getElementById('headerEggCount').innerText = `${formatNumber(gameState.gems)} 🥚`;
+      document.getElementById('headerCpsCount').innerText = `${formatNumber(gameState.cps)} / sec`;
+      document.getElementById('headerEnergyCount').innerText = `${formatNumber(gameState.energy)} / 5 ⚡`;
+      document.getElementById('headerLeafCount').innerText = `${formatNumber(gameState.goldenLeaves)} 🍃`;
+      document.getElementById('slothHpDisplay').innerText = `${formatNumber(gameState.slothHp)} / ${formatNumber(gameState.slothMaxHp)} HP`;
+      document.getElementById('bossHpText').innerText = `HP: ${formatNumber(bossState.currentHp)} / ${formatNumber(bossState.maxHp)}`;
+      const bossPct = bossState.maxHp ? Math.max(0, Math.min(100, (bossState.currentHp / bossState.maxHp) * 100)) : 0;
+      document.getElementById('bossHpFill').style.width = `${bossPct}%`;
+      const rewardShare = bossState.maxHp ? Math.min(100, (gameState.weeklyBossDamage / bossState.maxHp) * 100) : 0;
+      document.getElementById('playerContribText').innerText = `Your Share: ${formatNumber(rewardShare)}%`;
+      document.getElementById('bossTitle').innerText = `🦥 Emperor Sloth (Lvl ${bossState.level})`;
+      document.getElementById('bossBountyText').innerText = `Level Prize Pool: ${formatNumber(Math.max(2, bossState.level * 2))}.000 HIVE`;
+      document.getElementById('fullPrizePoolDisplay').innerText = `🏆 Full Pool: ${formatNumber(fullPrizePool)} HIVE`;
+      document.getElementById('weeklyPayoutDisplay').innerText = `🎁 Estimated Weekly Payout: ${formatNumber(fullPrizePool * 0.2)} HIVE`;
+      document.getElementById('syncStatus').innerText = currentUser ? "🛡️ On-Chain Mode" : "🛡️ Anti-Cheat Ready";
+      document.getElementById('coffeeBadge').style.display = (gameState.coffeeBoostUntil > Date.now()) ? 'inline-flex' : 'none';
+      document.getElementById('coffeeBadge').innerText = gameState.coffeeItemName ? `☕ ${gameState.coffeeItemName} ACTIVE!` : '☕ COFFEE BOOST ACTIVE!';
+      document.getElementById('frenzyBadge').style.display = (gameState.frenzyUntil > Date.now()) ? 'inline-flex' : 'none';
+      document.getElementById('apiAccountMeta').innerText = currentUser ? `@${currentUser}` : 'Not Connected';
+      const focusBtn = document.getElementById('leaderboardFocusBtn');
+      if (focusBtn) {
+        focusBtn.innerText = leaderboardFocusNearby ? 'Global Top' : 'Nearby Ranks';
+        focusBtn.disabled = !currentUser;
+      }
+      const leaderboardEl = document.getElementById('leaderboard');
+      if (leaderboardEl) {
+        leaderboardEl.innerHTML = '';
+        const entries = getLeaderboardEntries(leaderboardFocusNearby);
+        entries.forEach((entry, idx) => {
+          const item = document.createElement('li');
+          item.innerHTML = `<span>${idx + 1}. ${entry.name}</span><strong>${formatNumber(entry.score)} pts</strong>`;
+          leaderboardEl.appendChild(item);
+        });
+      }
+      const top10Btn = document.getElementById('leaderboardTop10Btn');
+      if (top10Btn) {
+        top10Btn.disabled = false;
+      }
+      document.getElementById('pendingLeavesText').innerText = `${formatNumber(gameState.goldenLeaves)} 🍃`;
+      document.getElementById('pvpEnergyDisplay').innerText = `${formatNumber(gameState.energy)} / 5`;
+      updateEnergyPurchaseInfo();
+      document.getElementById('statWeeklyEggs').innerText = formatNumber(gameState.weeklyHatchedGems);
+      document.getElementById('statLifetimeEggs').innerText = formatNumber(gameState.lifetimeHatchedGems);
+      document.getElementById('statWeeklyMiners').innerText = formatNumber(gameState.weeklyMinersUnlocked);
+      document.getElementById('statLifetimeMiners').innerText = formatNumber(gameState.lifetimeMinersUnlocked);
+      document.getElementById('statWeeklyBossDmg').innerText = formatNumber(gameState.weeklyBossDamage);
+      document.getElementById('statLifetimeBossDmg').innerText = formatNumber(gameState.lifetimeBossDamage);
+      document.getElementById('statWeeklyBossesDef').innerText = formatNumber(gameState.weeklyBossesDefeated);
+      document.getElementById('statLifetimeBossesDef').innerText = formatNumber(gameState.lifetimeBossesDefeated);
+      document.getElementById('statWeeklyHiveEarned').innerText = formatNumber(gameState.weeklyHiveEarned);
+      document.getElementById('statLifetimeHiveEarned').innerText = formatNumber(gameState.lifetimeHiveEarned);
+      updateBuyInDisplay();
+      const container = document.getElementById('slothRosterContainer');
+      container.innerHTML = '';
+      for (const key in gameState.miners) {
+        const unit = gameState.miners[key];
+        const cost = Math.max(0, unit.baseCost * Math.pow(2, unit.level));
+        if (unit.unlocked || gameState.totalLifetimeGems >= cost) {
+          const card = document.createElement('div');
+          card.className = `sloth-card ${unit.isLegendary ? 'legendary' : ''}`;
+
+          const artFrame = document.createElement('div');
+          artFrame.className = 'sloth-art-frame';
+          if (unit.imgPath) {
+            const img = document.createElement('img');
+            img.src = unit.imgPath;
+            img.alt = unit.name;
+            img.loading = 'lazy';
+            artFrame.appendChild(img);
+          } else {
+            const span = document.createElement('span');
+            span.textContent = unit.emoji || '🦥';
+            artFrame.appendChild(span);
+          }
+
+          const nameEl = document.createElement('b');
+          nameEl.textContent = unit.name;
+
+          const levelEl = document.createElement('span');
+          levelEl.style.fontSize = '0.80rem';
+          levelEl.style.color = 'var(--egg-gold)';
+          levelEl.textContent = `Lvl ${unit.level}`;
+
+          const nextCps = unit.baseCps * Math.pow(2, unit.level);
+          const upgradeInfo = document.createElement('div');
+          upgradeInfo.style.fontSize = '0.80rem';
+          upgradeInfo.style.color = 'var(--text-muted)';
+          upgradeInfo.style.marginBottom = '8px';
+          upgradeInfo.textContent = `Next level: +${formatNumber(nextCps)} cps`;
+
+          const actionRow = document.createElement('div');
+          actionRow.style.display = 'flex';
+          actionRow.style.flexWrap = 'wrap';
+          actionRow.style.gap = '6px';
+
+          const oneCost = getUpgradeCost(key, 1);
+          const fiveCost = getUpgradeCost(key, 5);
+          const tenCost = getUpgradeCost(key, 10);
+          const maxCount = getMaxUpgradeCount(key);
+          const maxCost = getUpgradeCost(key, maxCount);
+
+          const buttonSpecs = [
+            { count: 1, label: `+1 (${formatNumber(oneCost)} 🥚)`, cost: oneCost },
+            { count: 5, label: `+5 (${formatNumber(fiveCost)} 🥚)`, cost: fiveCost },
+            { count: 10, label: `+10 (${formatNumber(tenCost)} 🥚)`, cost: tenCost }
+          ];
+
+          buttonSpecs.forEach((spec) => {
+            const btn = document.createElement('button');
+            btn.className = 'btn-small btn-buyin';
+            btn.type = 'button';
+            btn.textContent = spec.label;
+            btn.disabled = gameState.gems < spec.cost;
+            btn.addEventListener('click', () => upgradeUnit(key, spec.count));
+            actionRow.appendChild(btn);
+          });
+
+          const maxBtn = document.createElement('button');
+          maxBtn.className = 'btn-small btn-buyin';
+          maxBtn.type = 'button';
+          maxBtn.textContent = maxCount > 0 ? `Max ${maxCount} (${formatNumber(maxCost)} 🥚)` : 'Max';
+          maxBtn.disabled = maxCount <= 0;
+          maxBtn.addEventListener('click', () => upgradeUnit(key, maxCount));
+          actionRow.appendChild(maxBtn);
+
+          card.appendChild(artFrame);
+          card.appendChild(nameEl);
+          card.appendChild(levelEl);
+          card.appendChild(upgradeInfo);
+          card.appendChild(actionRow);
+          container.appendChild(card);
+        }
+      }
+      updateBuyInDisplay();
+    }
+
+    function initializeGame() {
+      updateSyncButtons();
+      recalculateCps();
+      updateUI();
+      fetchLivePrizePoolData();
+      setInterval(fetchLivePrizePoolData, 30000);
+      const keychainProbe = setInterval(() => {
+        if (window.hive_keychain) {
+          clearInterval(keychainProbe);
+          updateSyncButtons();
+        }
+      }, 500);
+      setInterval(() => {
+        if (gameState.hasPaidBuyIn && gameState.cps > 0) {
+          const delta = gameState.cps / 4;
+          gameState.gems += delta;
+          gameState.totalLifetimeGems += delta;
+          gameState.weeklyHatchedGems += delta;
+          gameState.lifetimeHatchedGems += delta;
+          updateUI();
+        }
+      }, 250);
+      setInterval(() => {
+        const now = Date.now();
+        let remainingMs = cycleEndTime - now;
+        if (remainingMs <= 0) remainingMs = 0;
+        const days = Math.floor(remainingMs / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
+        document.getElementById('liveCountdown').innerText = `${String(days).padStart(2, '0')}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+      }, 1000);
+    }
+
+    function toggleLeaderboardFocus() {
+      leaderboardFocusNearby = !leaderboardFocusNearby;
+      updateUI();
+    }
+
+    function openTop10Modal() {
+      const modal = document.getElementById('top10Modal');
+      const list = document.getElementById('top10Leaderboard');
+      if (!modal || !list) return;
+      list.innerHTML = '';
+      getLeaderboardTop10().forEach((entry, idx) => {
+        const item = document.createElement('li');
+        item.innerHTML = `<span>${idx + 1}. ${entry.name}</span><strong>${formatNumber(entry.score)} pts</strong>`;
+        list.appendChild(item);
+      });
+      modal.style.display = 'flex';
+    }
+
+    function closeTop10Modal() {
+      const modal = document.getElementById('top10Modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    initializeGame();
+  </script>
+</body>
+</html>
