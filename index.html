@@ -668,7 +668,16 @@
           const eggsEstimate = Math.max(100, Math.floor(hiveBal * 1000 + vest / 1000));
           const hpEstimate = Math.max(50, Math.floor(eggsEstimate / 100));
           const prev = pvpTargets[name] || {};
-          pvpTargets[name] = { eggs: eggsEstimate, hp: Math.min(prev.maxHp || hpEstimate, prev.hp || hpEstimate), maxHp: hpEstimate, lastDamageAt: prev.lastDamageAt || 0 };
+          // Estimate a lightweight "mp" for prediction purposes (heuristic)
+          const estMp = Math.max(0, Math.floor(eggsEstimate / 1000));
+          pvpTargets[name] = {
+            eggs: eggsEstimate,
+            hp: Math.min(prev.maxHp || hpEstimate, prev.hp || hpEstimate),
+            maxHp: hpEstimate,
+            lastDamageAt: prev.lastDamageAt || 0,
+            estMp: estMp,
+            lastFetchedAt: Date.now()
+          };
 
           // Update AI leaderboard entries if present (case-insensitive)
           for (let i = 0; i < AI_LEADERBOARD_ENTRIES.length; i++) {
@@ -746,19 +755,33 @@
 
     function getLeaderboardEntries(focusNearby = false) {
       const entries = AI_LEADERBOARD_ENTRIES.map((entry) => ({ ...entry }));
-      // include any cached PvP targets in the leaderboard candidates
+      // include any cached PvP targets in the leaderboard candidates and compute predicted scores
+      const now = Date.now();
       Object.keys(pvpTargets).forEach((name) => {
+        const p = pvpTargets[name] || {};
         const display = `@${name}`;
+        const base = Math.floor(p.eggs || 0);
+        const estMp = p.estMp || 0;
+        const ageSeconds = Math.max(0, (now - (p.lastFetchedAt || now)) / 1000);
+        const predicted = Math.floor(base + estMp * ageSeconds);
         const existing = entries.find((e) => e.name.toLowerCase() === name.toLowerCase() || e.name === display);
         if (!existing) {
-          entries.push({ name: display, score: Math.floor(pvpTargets[name].eggs || 0) });
+          entries.push({ name: display, score: predicted, exactScore: base });
         } else {
-          existing.score = Math.floor(pvpTargets[name].eggs || existing.score);
+          existing.score = predicted;
+          existing.exactScore = base;
         }
       });
-      const playerScore = currentUser && pvpTargets[currentUser] ? Math.floor(pvpTargets[currentUser].eggs) : Math.floor(Math.max(gameState.weeklyHiveEarned || 0, gameState.gems || 0));
-      const playerEntry = currentUser ? { name: `@${currentUser}`, score: playerScore } : null;
-      if (playerEntry) entries.push(playerEntry);
+      // include current user with predicted score based on local MP and last timestamp
+      let playerEntry = null;
+      if (currentUser) {
+        const base = pvpTargets[currentUser] ? Math.floor(pvpTargets[currentUser].eggs) : Math.floor(Math.max(gameState.weeklyHiveEarned || 0, gameState.gems || 0));
+        const mp = gameState.mp || 0;
+        const ageSeconds = Math.max(0, (now - (gameState.lastTimestamp || now)) / 1000);
+        const predictedPlayer = Math.floor(base + mp * ageSeconds);
+        playerEntry = { name: `@${currentUser}`, score: predictedPlayer, exactScore: base };
+        entries.push(playerEntry);
+      }
       entries.sort((a, b) => b.score - a.score);
       if (!playerEntry || !focusNearby) {
         return entries.slice(0, 5);
@@ -780,19 +803,29 @@
 
     function getLeaderboardTop10() {
       const entries = AI_LEADERBOARD_ENTRIES.map((entry) => ({ ...entry }));
-      // merge pvpTargets
+      const now = Date.now();
+      // merge pvpTargets with predicted scores
       Object.keys(pvpTargets).forEach((name) => {
+        const p = pvpTargets[name] || {};
         const display = `@${name}`;
+        const base = Math.floor(p.eggs || 0);
+        const estMp = p.estMp || 0;
+        const ageSeconds = Math.max(0, (now - (p.lastFetchedAt || now)) / 1000);
+        const predicted = Math.floor(base + estMp * ageSeconds);
         const existing = entries.find((e) => e.name.toLowerCase() === name.toLowerCase() || e.name === display);
         if (!existing) {
-          entries.push({ name: display, score: Math.floor(pvpTargets[name].eggs || 0) });
+          entries.push({ name: display, score: predicted, exactScore: base });
         } else {
-          existing.score = Math.floor(pvpTargets[name].eggs || existing.score);
+          existing.score = predicted;
+          existing.exactScore = base;
         }
       });
       if (currentUser) {
-        const playerScore = pvpTargets[currentUser] ? Math.floor(pvpTargets[currentUser].eggs) : Math.floor(Math.max(gameState.weeklyHiveEarned || 0, gameState.gems || 0));
-        entries.push({ name: `@${currentUser}`, score: playerScore });
+        const base = pvpTargets[currentUser] ? Math.floor(pvpTargets[currentUser].eggs) : Math.floor(Math.max(gameState.weeklyHiveEarned || 0, gameState.gems || 0));
+        const mp = gameState.mp || 0;
+        const ageSeconds = Math.max(0, (now - (gameState.lastTimestamp || now)) / 1000);
+        const predictedPlayer = Math.floor(base + mp * ageSeconds);
+        entries.push({ name: `@${currentUser}`, score: predictedPlayer, exactScore: base });
       }
       entries.sort((a, b) => b.score - a.score);
       return entries.slice(0, 10);
@@ -1880,7 +1913,7 @@
         } catch (e) {
           console.warn('Periodic player refresh failed', e);
         }
-      }, 60 * 1000); // every 60s
+      }, 10 * 1000); // every 10s
       setInterval(() => {
         const now = Date.now();
         let remainingMs = cycleEndTime - now;
