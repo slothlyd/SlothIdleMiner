@@ -1098,31 +1098,6 @@
       ];
 
       const submitPost = () => {
-        // Try native Keychain comment/broadcast methods first for a proper Hive comment op
-        const tryKeychainBroadcast = (done) => {
-          try {
-            if (window.hive_keychain.requestPost) {
-              // Some Keychain builds expose requestPost
-              window.hive_keychain.requestPost(currentUser, commentPayload[0][1], (res) => done(res));
-              return true;
-            }
-            if (window.hive_keychain.requestBroadcast) {
-              // Try broadcasting a comment op
-              try {
-                window.hive_keychain.requestBroadcast([['comment', commentPayload[0][1]]], 'Posting', (res) => done(res));
-                return true;
-              } catch (e) {
-                // fallback signature without permission
-                window.hive_keychain.requestBroadcast([['comment', commentPayload[0][1]]], (res) => done(res));
-                return true;
-              }
-            }
-          } catch (e) {
-            console.warn('Keychain broadcast attempt failed', e);
-          }
-          return false;
-        };
-
         const handleKeychainResponse = (res) => {
           if (!res) return alert('Hive Keychain response missing.');
           const success = res.success === true || res.error === null || res.result;
@@ -1130,23 +1105,50 @@
             closeHangModal();
             alert('🎉 Hang posted successfully to slothbuzz.com/hangs!');
           } else {
-            console.warn('Hang post failed', res);
+            console.warn('Hang post via custom_json failed, attempting broadcast fallback', res);
+            // fallback to broadcast/comment if available
+            try {
+              if (window.hive_keychain.requestBroadcast) {
+                try {
+                  window.hive_keychain.requestBroadcast([['comment', commentPayload[0][1]]], 'Posting', (bres) => {
+                    if (bres && (bres.success === true || bres.result || bres.error == null)) {
+                      closeHangModal();
+                      alert('🎉 Hang posted successfully (broadcast fallback)!');
+                    } else {
+                      console.warn('Broadcast fallback failed', bres);
+                      alert('Unable to post Hang.');
+                    }
+                  });
+                  return;
+                } catch (e) {
+                  window.hive_keychain.requestBroadcast([['comment', commentPayload[0][1]]], (bres) => {
+                    if (bres && (bres.success === true || bres.result || bres.error == null)) {
+                      closeHangModal();
+                      alert('🎉 Hang posted successfully (broadcast fallback)!');
+                    } else {
+                      console.warn('Broadcast fallback failed', bres);
+                      alert('Unable to post Hang.');
+                    }
+                  });
+                  return;
+                }
+              }
+            } catch (e) {
+              console.warn('Broadcast fallback attempt failed', e);
+            }
             alert('Unable to post Hang.');
           }
         };
 
-        const didBroadcast = tryKeychainBroadcast(handleKeychainResponse);
-        if (!didBroadcast) {
-          // Fallback: use custom_json as before
-          window.hive_keychain.requestCustomJson(
-            currentUser,
-            HIVE_CUSTOM_JSON_ID,
-            'Posting',
-            JSON.stringify(commentPayload),
-            'Share milestone to SlothBuzz Hangs',
-            handleKeychainResponse
-          );
-        }
+        // Primary: use requestCustomJson which reliably prompts Keychain for a signature
+        window.hive_keychain.requestCustomJson(
+          currentUser,
+          HIVE_CUSTOM_JSON_ID,
+          'Posting',
+          JSON.stringify(commentPayload),
+          'Share milestone to SlothBuzz Hangs',
+          handleKeychainResponse
+        );
       };
 
       if (useReward) {
