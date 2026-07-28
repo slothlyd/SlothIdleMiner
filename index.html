@@ -24,6 +24,42 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body { background-color: var(--bg-dark); color: var(--text-light); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; font-size: 1.1rem; }
 
+    .top-disclaimer-bar {
+      background: #1c1402;
+      color: var(--egg-gold);
+      font-size: 0.9rem;
+      padding: 6px 16px;
+      text-align: center;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .social-icons {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .social-icons a {
+      color: var(--egg-gold);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+    }
+
+    .social-icons svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
     .ticker-bar {
       background: #000;
       color: var(--egg-gold);
@@ -229,6 +265,18 @@
 </head>
 <body>
 
+  <div class="top-disclaimer-bar">
+    <span>Disclaimer: Game in development; things may break; payouts not yet working; please don't spend Hive you don't want to lose.</span>
+    <div class="social-icons">
+      <a href="https://t.me/slothbuzz" target="_blank" rel="noopener noreferrer" title="Telegram">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.03-1.99 1.27-5.62 3.72-.53.36-1.01.54-1.44.53-.47-.02-1.37-.26-2.03-.48-.82-.27-1.47-.42-1.42-.88.03-.25.38-.51 1.08-.78 4.23-1.84 7.05-3.05 8.45-3.63 4.02-1.68 4.85-1.97 5.39-1.98.12 0 .39.03.56.17.15.12.19.28.21.4-.01.07.01.23-.01.37z"/></svg>
+      </a>
+      <a href="https://discord.gg/Qkx8kpbUJr" target="_blank" rel="noopener noreferrer" title="Discord">[cite: 2]
+        <svg viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.011c3.927 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+      </a>
+    </div>
+  </div>
+
   <div class="ticker-bar">
     <div class="ticker-content" id="tickerText">
       🏆 Full Prize Pool Live Updates | 🛡️ Server-Verified Custom-JSON On-Chain Anti-Cheat Active! | ⚔️ Secure Ledger Mode Enabled.
@@ -311,7 +359,6 @@
             <span style="font-size:0.8rem; color:var(--text-muted)">Remember</span>
           </label>
           <button id="loginBtn" onclick="connectKeychain()">Connect</button>
-          <button id="logoutBtn" onclick="logoutUser()" style="display:none; background: linear-gradient(135deg, var(--health-red), #c0392b);">Log Out</button>
       </div>
     </div>
   </header>
@@ -528,7 +575,7 @@
           <span style="font-size:0.85rem; color:var(--text-muted)">Buy energy (max 5/24h)</span>
           <button id="buyEnergyBtn" class="btn-buyin btn-small" onclick="buyEnergy()">+1 Energy (1 HIVE)</button>
         </div>
-        <div id="energyPurchaseInfo" style="font-size:0.75rem; color:var(--text-muted)">Energy purchases today: 0/5</div>
+        <div id="energyPurchaseInfo" style="font-size:0.75rem; color:var(--text-muted);">Energy purchases today: 0/5</div>
       </div>
 
       <div class="card-header" style="margin-top:10px;">
@@ -644,14 +691,8 @@
         .slice(0, 200);
     }
 
-    // 5 random demo players to populate the leaderboard[cite: 1]
-    const AI_LEADERBOARD_ENTRIES = [
-      { name: "@jungle_king", score: 45200, exactScore: 45200 },
-      { name: "@canopy_queen", score: 38150, exactScore: 38150 },
-      { name: "@lazy_gamer", score: 29400, exactScore: 29400 },
-      { name: "@vine_hopper", score: 18900, exactScore: 18900 },
-      { name: "@mossy_sloth", score: 12300, exactScore: 12300 }
-    ];
+    // Start with no demo leaderboard entries; real players populate the leaderboard from on-chain data
+    const AI_LEADERBOARD_ENTRIES = [];
 
     const NEW_PLAYER_MS = 5 * 60 * 1000; // 5 minutes considered "new"
 
@@ -1202,36 +1243,6 @@
       const fetchApiBtn = document.getElementById('fetchApiBtn');
       if (fetchApiBtn) fetchApiBtn.disabled = !enabled;
       document.getElementById('buyInBtn').disabled = !enabled || gameState.hasPaidBuyIn;
-      
-      const loginBtn = document.getElementById('loginBtn');
-      const logoutBtn = document.getElementById('logoutBtn');
-      const usernameInput = document.getElementById('username');
-
-      if (currentUser) {
-        if (loginBtn) {
-          loginBtn.innerText = "Connected";
-          loginBtn.disabled = true;
-        }
-        if (usernameInput) {
-          usernameInput.disabled = true;
-        }
-        if (logoutBtn) {
-          logoutBtn.style.display = "inline-flex";
-        }
-      } else {
-        if (loginBtn) {
-          loginBtn.innerText = "Connect";
-          loginBtn.disabled = false;
-        }
-        if (usernameInput) {
-          usernameInput.disabled = false;
-          usernameInput.value = "";
-        }
-        if (logoutBtn) {
-          logoutBtn.style.display = "none";
-        }
-      }
-
       updateKeychainStatus();
       updateBuyInDisplay();
     }
@@ -1263,7 +1274,9 @@
         const success = res && (res.success === true || res.result || res.error == null);
         if (success) {
           currentUser = username;
-          // Persist username/session if requested[cite: 1]
+          document.getElementById('loginBtn').innerText = "Connected";
+          document.getElementById('loginBtn').disabled = true;
+          // Persist username/session if requested
           if (remember) {
             setCookie('sloth_user', username, 30);
             setCookie('sloth_session', '1', 30);
@@ -1287,19 +1300,6 @@
           alert("Keychain signature failed or was canceled.");
         }
       });
-    }
-
-    function logoutUser() {
-      currentUser = null;
-      eraseCookie('sloth_user');
-      eraseCookie('sloth_session');
-      gameState = createDefaultGameState();
-      bossState = { level: 1, maxHp: 10000, currentHp: 10000, playerDamage: 0 };
-      document.getElementById('apiAccountMeta').innerText = 'Not Connected';
-      document.getElementById('apiHiveBal').innerText = '0.000';
-      document.getElementById('apiHivePower').innerText = '0.000';
-      updateSyncButtons();
-      updateUI();
     }
 
     function openHangModal() {
@@ -1925,6 +1925,8 @@
           currentUser = savedUser;
           const usernameInput = document.getElementById('username');
           if (usernameInput) usernameInput.value = savedUser;
+          const loginBtn = document.getElementById('loginBtn');
+          if (loginBtn) { loginBtn.innerText = 'Connected'; loginBtn.disabled = true; }
           updateSyncButtons();
           // Hydrate data for the restored user (no Keychain signing occurs here)
           fetchRealHiveAccountData();
@@ -1974,6 +1976,8 @@
         const seconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
         document.getElementById('liveCountdown').innerText = `${String(days).padStart(2, '0')}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
       }, 1000);
+
+      // No seeded demo PvP targets — real players populate PvP lists via fetches
     }
 
     function toggleLeaderboardFocus() {
