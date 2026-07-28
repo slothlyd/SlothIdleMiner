@@ -311,6 +311,7 @@
             <span style="font-size:0.8rem; color:var(--text-muted)">Remember</span>
           </label>
           <button id="loginBtn" onclick="connectKeychain()">Connect</button>
+          <button id="logoutBtn" onclick="logoutUser()" style="display:none; background: linear-gradient(135deg, var(--health-red), #c0392b);">Log Out</button>
       </div>
     </div>
   </header>
@@ -527,7 +528,7 @@
           <span style="font-size:0.85rem; color:var(--text-muted)">Buy energy (max 5/24h)</span>
           <button id="buyEnergyBtn" class="btn-buyin btn-small" onclick="buyEnergy()">+1 Energy (1 HIVE)</button>
         </div>
-        <div id="energyPurchaseInfo" style="font-size:0.75rem; color:var(--text-muted);">Energy purchases today: 0/5</div>
+        <div id="energyPurchaseInfo" style="font-size:0.75rem; color:var(--text-muted)">Energy purchases today: 0/5</div>
       </div>
 
       <div class="card-header" style="margin-top:10px;">
@@ -643,8 +644,14 @@
         .slice(0, 200);
     }
 
-    // Start with no demo leaderboard entries; real players populate the leaderboard from on-chain data
-    const AI_LEADERBOARD_ENTRIES = [];
+    // 5 random demo players to populate the leaderboard[cite: 1]
+    const AI_LEADERBOARD_ENTRIES = [
+      { name: "@jungle_king", score: 45200, exactScore: 45200 },
+      { name: "@canopy_queen", score: 38150, exactScore: 38150 },
+      { name: "@lazy_gamer", score: 29400, exactScore: 29400 },
+      { name: "@vine_hopper", score: 18900, exactScore: 18900 },
+      { name: "@mossy_sloth", score: 12300, exactScore: 12300 }
+    ];
 
     const NEW_PLAYER_MS = 5 * 60 * 1000; // 5 minutes considered "new"
 
@@ -1195,6 +1202,36 @@
       const fetchApiBtn = document.getElementById('fetchApiBtn');
       if (fetchApiBtn) fetchApiBtn.disabled = !enabled;
       document.getElementById('buyInBtn').disabled = !enabled || gameState.hasPaidBuyIn;
+      
+      const loginBtn = document.getElementById('loginBtn');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const usernameInput = document.getElementById('username');
+
+      if (currentUser) {
+        if (loginBtn) {
+          loginBtn.innerText = "Connected";
+          loginBtn.disabled = true;
+        }
+        if (usernameInput) {
+          usernameInput.disabled = true;
+        }
+        if (logoutBtn) {
+          logoutBtn.style.display = "inline-flex";
+        }
+      } else {
+        if (loginBtn) {
+          loginBtn.innerText = "Connect";
+          loginBtn.disabled = false;
+        }
+        if (usernameInput) {
+          usernameInput.disabled = false;
+          usernameInput.value = "";
+        }
+        if (logoutBtn) {
+          logoutBtn.style.display = "none";
+        }
+      }
+
       updateKeychainStatus();
       updateBuyInDisplay();
     }
@@ -1226,9 +1263,7 @@
         const success = res && (res.success === true || res.result || res.error == null);
         if (success) {
           currentUser = username;
-          document.getElementById('loginBtn').innerText = "Connected";
-          document.getElementById('loginBtn').disabled = true;
-          // Persist username/session if requested
+          // Persist username/session if requested[cite: 1]
           if (remember) {
             setCookie('sloth_user', username, 30);
             setCookie('sloth_session', '1', 30);
@@ -1252,6 +1287,19 @@
           alert("Keychain signature failed or was canceled.");
         }
       });
+    }
+
+    function logoutUser() {
+      currentUser = null;
+      eraseCookie('sloth_user');
+      eraseCookie('sloth_session');
+      gameState = createDefaultGameState();
+      bossState = { level: 1, maxHp: 10000, currentHp: 10000, playerDamage: 0 };
+      document.getElementById('apiAccountMeta').innerText = 'Not Connected';
+      document.getElementById('apiHiveBal').innerText = '0.000';
+      document.getElementById('apiHivePower').innerText = '0.000';
+      updateSyncButtons();
+      updateUI();
     }
 
     function openHangModal() {
@@ -1877,8 +1925,6 @@
           currentUser = savedUser;
           const usernameInput = document.getElementById('username');
           if (usernameInput) usernameInput.value = savedUser;
-          const loginBtn = document.getElementById('loginBtn');
-          if (loginBtn) { loginBtn.innerText = 'Connected'; loginBtn.disabled = true; }
           updateSyncButtons();
           // Hydrate data for the restored user (no Keychain signing occurs here)
           fetchRealHiveAccountData();
@@ -1928,8 +1974,6 @@
         const seconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
         document.getElementById('liveCountdown').innerText = `${String(days).padStart(2, '0')}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
       }, 1000);
-
-      // No seeded demo PvP targets — real players populate PvP lists via fetches
     }
 
     function toggleLeaderboardFocus() {
