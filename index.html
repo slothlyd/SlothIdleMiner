@@ -285,7 +285,7 @@
         <div style="width: 2px; height: 26px; background: var(--border-color);"></div>
         <div class="stat-pill">
           <span>Production</span>
-          <strong id="headerCpsCount" style="color:var(--sloth-green)">0 / sec</strong>
+          <strong id="headerCpsCount" style="color:var(--sloth-green)">0 MP</strong>
         </div>
         <div style="width: 2px; height: 26px; background: var(--border-color);"></div>
         <div class="stat-pill">
@@ -471,20 +471,22 @@
         </div>
 
         <div class="pvp-target-list">
-          <div class="pvp-target-card">
-            <div>
-              <b style="font-size:0.95rem;">@slothmaster</b>
-              <div style="font-size:0.75rem; color:var(--health-red)">HP: 140/140 | Est. Eggs: ~15.4K</div>
+          <div class="pvp-target-card" data-target="slothmaster">
+              <div>
+                <b style="font-size:0.95rem;">@slothmaster</b>
+                <div class="target-hp" style="font-size:0.75rem; color:var(--health-red)">HP: 140/140</div>
+                <div class="target-eggs" style="font-size:0.75rem; color:var(--health-red)">Est. Eggs: ~15.4K</div>
+              </div>
+              <button class="btn-raid btn-small" onclick="attackPvpTarget('slothmaster', 15400, 140)">⚔️ Attack</button>
             </div>
-            <button class="btn-raid btn-small" onclick="attackPvpTarget('slothmaster', 15400, 140)">⚔️ Attack</button>
-          </div>
-          <div class="pvp-target-card">
-            <div>
-              <b style="font-size:0.95rem;">@crypto_node</b>
-              <div style="font-size:0.75rem; color:var(--health-red)">HP: 80/80 | Est. Eggs: ~9.8K</div>
+            <div class="pvp-target-card" data-target="crypto_node">
+              <div>
+                <b style="font-size:0.95rem;">@crypto_node</b>
+                <div class="target-hp" style="font-size:0.75rem; color:var(--health-red)">HP: 80/80</div>
+                <div class="target-eggs" style="font-size:0.75rem; color:var(--health-red)">Est. Eggs: ~9.8K</div>
+              </div>
+              <button class="btn-raid btn-small" onclick="attackPvpTarget('crypto_node', 9800, 80)">⚔️ Attack</button>
             </div>
-            <button class="btn-raid btn-small" onclick="attackPvpTarget('crypto_node', 9800, 80)">⚔️ Attack</button>
-          </div>
         </div>
 
         <div style="display:flex; gap:6px; margin-top:4px;">
@@ -567,6 +569,29 @@
     let leaderboardFocusNearby = false;
     let fullPrizePool = 500.000;
     let cycleEndTime = getNextMondayNoonTimestamp();
+    // PvP target simulation state (client-side cache)
+    const pvpTargets = {};
+
+    function getTargetCurrentHp(name) {
+      const t = pvpTargets[name];
+      if (!t) return null;
+      const now = Date.now();
+      const hours = (now - (t.lastDamageAt || 0)) / (1000 * 60 * 60);
+      const regen = Math.floor(hours * 10); // 10 HP per hour
+      return Math.min(t.maxHp, t.hp + regen);
+    }
+
+    function updatePvpTargetDisplay(name) {
+      const container = document.querySelector(`[data-target="${name}"]`);
+      if (!container) return;
+      const t = pvpTargets[name];
+      if (!t) return;
+      const hpEl = container.querySelector('.target-hp');
+      const eggsEl = container.querySelector('.target-eggs');
+      const hp = getTargetCurrentHp(name);
+      if (hpEl) hpEl.innerText = `HP: ${hp}/${t.maxHp}`;
+      if (eggsEl) eggsEl.innerText = `Est. Eggs: ~${formatNumber(Math.max(0, Math.floor(t.eggs)))}`;
+    }
 
     function formatNumber(num) {
       if (num === null || num === undefined || isNaN(num)) return '0';
@@ -665,7 +690,7 @@
         weeklyBossesDefeated: 0,
         lifetimeHiveEarned: 0,
         weeklyHiveEarned: 0,
-        cps: 0,
+        mp: 0,
         goldenLeaves: 0,
         ascensionCount: 0,
         energy: 5,
@@ -680,15 +705,15 @@
         lastTimestamp: Date.now(),
         energyPurchases: [],
         miners: {
-          unit1: { name: "Nap Time Sloth", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640019830308905/67913b9e-7257-44d8-80b1-018c906f38cc.png?ex=6a69f26d&is=6a68a0ed&hm=5abf1c7153f26e6ea2da7ee6adf1c49429304cb2673119432a540e097283d8e8&", emoji: "🦥", level: 1, baseCps: 1, unlocked: true, baseCost: 150 },
-          unit2: { name: "Hammock Lounger", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640043922260039/19d7d5cf-549f-4bdd-b8e7-07aca5786b18.png?ex=6a69f272&is=6a68a0f2&hm=81ba411be42c368035300543e74b1aac02e65c5fea611a4bb0b89f0e2cb6a512&", emoji: "🌿", level: 0, baseCps: 5, unlocked: false, baseCost: 1000 },
-          unit3: { name: "Tree Forager", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640062909878424/76b3dfad-1691-403d-a603-1913142511ed.png?ex=6a69f277&is=6a68a0f7&hm=60a664f9d59f1b2bde7dd89c30db9c14c0ca5133ed5363928afb0a2852128e26&", emoji: "🍃", level: 0, baseCps: 20, unlocked: false, baseCost: 5000 },
-          unit4: { name: "Cosmic Zen Sloth", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640089430724779/78505e37-8123-48e8-a3d9-e296bd0db245.png?ex=6a69f27d&is=6a68a0fd&hm=9d17b845499898f8b2f9facceb2bfe10f7683e44bcde0a7f96e9282a97fcff43&", emoji: "✨", level: 0, baseCps: 90, unlocked: false, baseCost: 25000 },
-          unit5: { name: "Jungle Harvester", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640111375061022/4c07c1c6-b324-4861-a869-c8b0301dcc90.png?ex=6a69f283&is=6a68a103&hm=bb89ddfb22f4fc8aa5fb6a941899c44bc04c2941879879ab5692432bcdc35fcc&", emoji: "🌴", level: 0, baseCps: 350, unlocked: false, baseCost: 100000 },
-          unit6: { name: "Canopy Climber", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640130203422761/f651a235-a48e-42d3-96cc-fe56bc9804f6.png?ex=6a69f287&is=6a68a107&hm=088daa1362d78ffdeb9da3fabb218c45ed58869b26f022810f0a942e45ba2e70&", emoji: "🌳", level: 0, baseCps: 1200, unlocked: false, baseCost: 450000 },
-          unit7: { name: "Mystic Shaman", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640147806912643/578c1479-6223-46d4-a2c1-b32f01d29e3d.png?ex=6a69f28b&is=6a68a10b&hm=3f9ea75bbc351234eacabe0c0ec4b5487701bd969c808f7c4b5b3688ba2fdf66&", emoji: "🍄", level: 0, baseCps: 4500, unlocked: false, baseCost: 2000000 },
-          unit8: { name: "Solar Overlord", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640168593883226/7bca0074-60cc-47d4-8144-32698e0b4106.png?ex=6a69f290&is=6a68a110&hm=e32e455b10f69873e23eb21b8d92aa066e0b9be8162ea3286be689a0c15cf08b&", emoji: "☀️", level: 0, baseCps: 12000, unlocked: false, baseCost: 8000000 },
-          unit9: { name: "👑 Legendary Sloth", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640188927873064/ab70065e-7d56-459c-bac5-b851192a452c.png?ex=6a69f295&is=6a68a115&hm=8788aa513a7ba5d929e66afa5cae2cb9328a491743c7f4d40e8bbde8440992d1&", emoji: "👑", level: 0, baseCps: 25000, unlocked: false, baseCost: 30000000, isLegendary: true }
+          unit1: { name: "Nap Time Sloth", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640019830308905/67913b9e-7257-44d8-80b1-018c906f38cc.png?ex=6a69f26d&is=6a68a0ed&hm=5abf1c7153f26e6ea2da7ee6adf1c49429304cb2673119432a540e097283d8e8&", emoji: "🦥", level: 1, baseMp: 1, unlocked: true, baseCost: 150 },
+          unit2: { name: "Hammock Lounger", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640043922260039/19d7d5cf-549f-4bdd-b8e7-07aca5786b18.png?ex=6a69f272&is=6a68a0f2&hm=81ba411be42c368035300543e74b1aac02e65c5fea611a4bb0b89f0e2cb6a512&", emoji: "🌿", level: 0, baseMp: 5, unlocked: false, baseCost: 1000 },
+          unit3: { name: "Tree Forager", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640062909878424/76b3dfad-1691-403d-a603-1913142511ed.png?ex=6a69f277&is=6a68a0f7&hm=60a664f9d59f1b2bde7dd89c30db9c14c0ca5133ed5363928afb0a2852128e26&", emoji: "🍃", level: 0, baseMp: 20, unlocked: false, baseCost: 5000 },
+          unit4: { name: "Cosmic Zen Sloth", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640089430724779/78505e37-8123-48e8-a3d9-e296bd0db245.png?ex=6a69f27d&is=6a68a0fd&hm=9d17b845499898f8b2f9facceb2bfe10f7683e44bcde0a7f96e9282a97fcff43&", emoji: "✨", level: 0, baseMp: 90, unlocked: false, baseCost: 25000 },
+          unit5: { name: "Jungle Harvester", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640111375061022/4c07c1c6-b324-4861-a869-c8b0301dcc90.png?ex=6a69f283&is=6a68a103&hm=bb89ddfb22f4fc8aa5fb6a941899c44bc04c2941879879ab5692432bcdc35fcc&", emoji: "🌴", level: 0, baseMp: 350, unlocked: false, baseCost: 100000 },
+          unit6: { name: "Canopy Climber", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640130203422761/f651a235-a48e-42d3-96cc-fe56bc9804f6.png?ex=6a69f287&is=6a68a107&hm=088daa1362d78ffdeb9da3fabb218c45ed58869b26f022810f0a942e45ba2e70&", emoji: "🌳", level: 0, baseMp: 1200, unlocked: false, baseCost: 450000 },
+          unit7: { name: "Mystic Shaman", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640147806912643/578c1479-6223-46d4-a2c1-b32f01d29e3d.png?ex=6a69f28b&is=6a68a10b&hm=3f9ea75bbc351234eacabe0c0ec4b5487701bd969c808f7c4b5b3688ba2fdf66&", emoji: "🍄", level: 0, baseMp: 4500, unlocked: false, baseCost: 2000000 },
+          unit8: { name: "Solar Overlord", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640168593883226/7bca0074-60cc-47d4-8144-32698e0b4106.png?ex=6a69f290&is=6a68a110&hm=e32e455b10f69873e23eb21b8d92aa066e0b9be8162ea3286be689a0c15cf08b&", emoji: "☀️", level: 0, baseMp: 12000, unlocked: false, baseCost: 8000000 },
+          unit9: { name: "👑 Legendary Sloth", imgPath: "https://cdn.discordapp.com/attachments/1019545358369554460/1531640188927873064/ab70065e-7d56-459c-bac5-b851192a452c.png?ex=6a69f295&is=6a68a115&hm=8788aa513a7ba5d929e66afa5cae2cb9328a491743c7f4d40e8bbde8440992d1&", emoji: "👑", level: 0, baseMp: 25000, unlocked: false, baseCost: 30000000, isLegendary: true }
         }
       };
     }
@@ -760,7 +785,7 @@
         weeklyBossesDefeated: gameState.weeklyBossesDefeated,
         lifetimeHiveEarned: parseFloat(gameState.lifetimeHiveEarned.toFixed(3)),
         weeklyHiveEarned: parseFloat(gameState.weeklyHiveEarned.toFixed(3)),
-        cps: gameState.cps,
+        mp: gameState.mp,
         goldenLeaves: gameState.goldenLeaves,
         ascensionCount: gameState.ascensionCount,
         energy: gameState.energy,
@@ -802,13 +827,13 @@
         gameState.lastTimestamp = Math.max(gameState.lastTimestamp, untilTimestamp || Date.now());
         return;
       }
-      recalculateCps();
+      recalculateMp();
       const elapsedSeconds = (untilTimestamp - gameState.lastTimestamp) / 1000;
-      if (elapsedSeconds <= 0 || gameState.cps <= 0) {
+      if (elapsedSeconds <= 0 || gameState.mp <= 0) {
         gameState.lastTimestamp = untilTimestamp;
         return;
       }
-      const produced = elapsedSeconds * gameState.cps;
+      const produced = elapsedSeconds * gameState.mp;
       gameState.gems += produced;
       gameState.totalLifetimeGems += produced;
       gameState.weeklyHatchedGems += produced;
@@ -900,7 +925,7 @@
             unit.level += payload.levels || 0;
             unit.unlocked = true;
             gameState.gems -= payload.costPaid || 0;
-            recalculateCps();
+            recalculateMp();
           }
           break;
         default:
@@ -942,12 +967,12 @@
               accrueIdleProduction(event.timestamp);
             }
             applyActionEvent(event);
-            recalculateCps();
+            recalculateMp();
             gameState.lastTimestamp = event.timestamp || gameState.lastTimestamp;
           });
           accrueIdleProduction(Date.now());
           gameState.gems = Math.max(0, gameState.gems);
-          recalculateCps();
+          recalculateMp();
           updateUI();
           updateBuyInDisplay();
         })
@@ -1046,9 +1071,9 @@
       if (!currentUser || !window.hive_keychain) return alert('Connect Hive Keychain first.');
       const message = sanitizeHangMessage(document.getElementById('hangMessageInput').value);
       if (!message) return alert('Please enter a short milestone message.');
-      // Target the main slothbuzz hangs thread (parent is the slothbuzz account)
-      const parentAuthor = 'slothbuzz';
-      const parentPermlink = 'hangs';
+      // Target the main slothbuzz hangs container thread
+      const parentAuthor = 'slothbuzz.hangs';
+      const parentPermlink = 'hangs-container-07012026';
       // permlink must be URL-safe lowercase; include user and timestamp for uniqueness
       const safeUser = String(currentUser).toLowerCase().replace(/[^a-z0-9-]/g, '');
       const permlink = `${safeUser}-hang-${Date.now()}`;
@@ -1073,24 +1098,55 @@
       ];
 
       const submitPost = () => {
-        window.hive_keychain.requestCustomJson(
-          currentUser,
-          HIVE_CUSTOM_JSON_ID,
-          'Posting',
-          JSON.stringify(commentPayload),
-          'Share milestone to SlothBuzz Hangs',
-          (res) => {
-            if (!res) return alert('Hive Keychain response missing.');
-            const success = res.success === true || res.error === null || res.result;
-            if (success) {
-              closeHangModal();
-              alert('🎉 Hang posted successfully to slothbuzz.com/hangs!');
-            } else {
-              console.warn('Hang post failed', res);
-              alert('Unable to post Hang.');
+        // Try native Keychain comment/broadcast methods first for a proper Hive comment op
+        const tryKeychainBroadcast = (done) => {
+          try {
+            if (window.hive_keychain.requestPost) {
+              // Some Keychain builds expose requestPost
+              window.hive_keychain.requestPost(currentUser, commentPayload[0][1], (res) => done(res));
+              return true;
             }
+            if (window.hive_keychain.requestBroadcast) {
+              // Try broadcasting a comment op
+              try {
+                window.hive_keychain.requestBroadcast([['comment', commentPayload[0][1]]], 'Posting', (res) => done(res));
+                return true;
+              } catch (e) {
+                // fallback signature without permission
+                window.hive_keychain.requestBroadcast([['comment', commentPayload[0][1]]], (res) => done(res));
+                return true;
+              }
+            }
+          } catch (e) {
+            console.warn('Keychain broadcast attempt failed', e);
           }
-        );
+          return false;
+        };
+
+        const handleKeychainResponse = (res) => {
+          if (!res) return alert('Hive Keychain response missing.');
+          const success = res.success === true || res.error === null || res.result;
+          if (success) {
+            closeHangModal();
+            alert('🎉 Hang posted successfully to slothbuzz.com/hangs!');
+          } else {
+            console.warn('Hang post failed', res);
+            alert('Unable to post Hang.');
+          }
+        };
+
+        const didBroadcast = tryKeychainBroadcast(handleKeychainResponse);
+        if (!didBroadcast) {
+          // Fallback: use custom_json as before
+          window.hive_keychain.requestCustomJson(
+            currentUser,
+            HIVE_CUSTOM_JSON_ID,
+            'Posting',
+            JSON.stringify(commentPayload),
+            'Share milestone to SlothBuzz Hangs',
+            handleKeychainResponse
+          );
+        }
       };
 
       if (useReward) {
@@ -1220,7 +1276,7 @@
         return alert('Free spin is available once per day.');
       }
 
-      const production = Math.max(1, Math.floor(gameState.cps));
+      const production = Math.max(1, Math.floor(gameState.mp));
       const freeEggCap = Math.min(2500, Math.max(150, production * 4));
       const paidEggCap = Math.min(8000, Math.max(400, production * 8));
       const leafReward = Math.max(1, Math.min(10, Math.floor(production / 120)));
@@ -1305,10 +1361,33 @@
       dispatchAction('attack_boss', { damage, eggsUsed: amount });
     }
 
-    function attackPvpTarget(targetUser, estLoot) {
+    function attackPvpTarget(targetUser, estLoot = 5000, targetMaxHp = 100) {
       if (gameState.energy < 1) return alert("⚡ Out of energy!");
-      const stolen = Math.floor(estLoot * 0.1);
-      dispatchAction('attack_target', { target: targetUser, stolenEggs: stolen });
+      // Ensure we have a cached target state
+      if (!pvpTargets[targetUser]) {
+        pvpTargets[targetUser] = { eggs: estLoot, hp: targetMaxHp, maxHp: targetMaxHp, lastDamageAt: 0 };
+      }
+      const target = pvpTargets[targetUser];
+      // Recalculate current eggs and HP
+      const currentEggs = Math.max(0, Math.floor(target.eggs || estLoot));
+      const stolen = Math.max(1, Math.floor(currentEggs * 0.1));
+
+      // Damage: convert stolen eggs into HP damage (10 eggs => 1 HP)
+      const damage = Math.min(target.maxHp, Math.ceil(stolen / 10));
+
+      // Apply immediate local simulation: reduce target eggs and HP, mark damage time
+      target.eggs = Math.max(0, target.eggs - stolen);
+      const currHp = getTargetCurrentHp(targetUser);
+      const newHp = Math.max(0, currHp - damage);
+      target.hp = newHp;
+      target.lastDamageAt = Date.now();
+      updatePvpTargetDisplay(targetUser);
+
+      // Dispatch the verified on-chain action (will also update local state when confirmed)
+      dispatchAction('attack_target', { target: targetUser, stolenEggs: stolen, damage: damage }, () => {
+        alert(`⚔️ Raid complete — stolen ${formatNumber(stolen)} eggs from @${targetUser}!`);
+        updateUI();
+      });
     }
 
     function attackCustomTarget() {
@@ -1430,21 +1509,21 @@
       dispatchAction('upgrade_unit', { unitKey: key, levels: purchaseCount, costPaid: cost });
     }
 
-    function recalculateCps() {
+    function recalculateMp() {
       let total = 0;
       for (const k in gameState.miners) {
         const unit = gameState.miners[k];
-        if (unit.unlocked) total += unit.baseCps * Math.pow(2, unit.level);
+        if (unit.unlocked) total += (unit.baseMp || unit.baseCps || 0) * Math.pow(2, unit.level);
       }
       let multiplier = 1;
       if (gameState.coffeeBoostUntil > Date.now()) multiplier += gameState.coffeeBoostMultiplier;
       if (gameState.frenzyUntil > Date.now()) multiplier += 2;
-      gameState.cps = Math.floor(total * multiplier);
+      gameState.mp = Math.floor(total * multiplier);
     }
 
     function updateUI() {
       document.getElementById('headerEggCount').innerText = `${formatNumber(gameState.gems)} 🥚`;
-      document.getElementById('headerCpsCount').innerText = `${formatNumber(gameState.cps)} / sec`;
+      document.getElementById('headerCpsCount').innerText = `${formatNumber(gameState.mp)} MP`;
       document.getElementById('headerEnergyCount').innerText = `${formatNumber(gameState.energy)} / 5 ⚡`;
       document.getElementById('headerLeafCount').innerText = `${formatNumber(gameState.goldenLeaves)} 🍃`;
       document.getElementById('slothHpDisplay').innerText = `${formatNumber(gameState.slothHp)} / ${formatNumber(gameState.slothMaxHp)} HP`;
@@ -1527,12 +1606,12 @@
           levelEl.style.color = 'var(--egg-gold)';
           levelEl.textContent = `Lvl ${unit.level}`;
 
-          const nextCps = unit.baseCps * Math.pow(2, unit.level);
+          const nextCps = (unit.baseMp || unit.baseCps || 0) * Math.pow(2, unit.level);
           const upgradeInfo = document.createElement('div');
           upgradeInfo.style.fontSize = '0.80rem';
           upgradeInfo.style.color = 'var(--text-muted)';
           upgradeInfo.style.marginBottom = '8px';
-          upgradeInfo.textContent = `Next level: +${formatNumber(nextCps)} cps`;
+          upgradeInfo.textContent = `Next level: +${formatNumber(nextCps)} MP`;
 
           const actionRow = document.createElement('div');
           actionRow.style.display = 'flex';
@@ -1584,7 +1663,7 @@
 
     function initializeGame() {
       updateSyncButtons();
-      recalculateCps();
+      recalculateMp();
       updateUI();
       fetchLivePrizePoolData();
       setInterval(fetchLivePrizePoolData, 30000);
@@ -1595,8 +1674,8 @@
         }
       }, 500);
       setInterval(() => {
-        if (gameState.hasPaidBuyIn && gameState.cps > 0) {
-          const delta = gameState.cps / 4;
+          if (gameState.hasPaidBuyIn && gameState.mp > 0) {
+            const delta = gameState.mp / 4;
           gameState.gems += delta;
           gameState.totalLifetimeGems += delta;
           gameState.weeklyHatchedGems += delta;
@@ -1614,6 +1693,12 @@
         const seconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
         document.getElementById('liveCountdown').innerText = `${String(days).padStart(2, '0')}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
       }, 1000);
+
+      // Seed PvP target simulation state for UI demo entries
+      pvpTargets['slothmaster'] = { eggs: 15400, hp: 140, maxHp: 140, lastDamageAt: 0 };
+      pvpTargets['crypto_node'] = { eggs: 9800, hp: 80, maxHp: 80, lastDamageAt: 0 };
+      updatePvpTargetDisplay('slothmaster');
+      updatePvpTargetDisplay('crypto_node');
     }
 
     function toggleLeaderboardFocus() {
