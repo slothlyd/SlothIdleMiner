@@ -643,13 +643,10 @@
         .slice(0, 200);
     }
 
-    const AI_LEADERBOARD_ENTRIES = [
-      { name: 'SlothKing', score: 17800 },
-      { name: 'HiveHerder', score: 14350 },
-      { name: 'LeafLord', score: 12400 },
-      { name: 'EggSage', score: 9600 },
-      { name: 'ForestFury', score: 8200 }
-    ];
+    // Start with no demo leaderboard entries; real players populate the leaderboard from on-chain data
+    const AI_LEADERBOARD_ENTRIES = [];
+
+    const NEW_PLAYER_MS = 5 * 60 * 1000; // 5 minutes considered "new"
 
     // Fetch multiple Hive accounts and update local player stats (eggs, hp)
     async function fetchAndUpdatePlayers(usernames) {
@@ -670,13 +667,16 @@
           const prev = pvpTargets[name] || {};
           // Estimate a lightweight "mp" for prediction purposes (heuristic)
           const estMp = Math.max(0, Math.floor(eggsEstimate / 1000));
+          // preserve createdAt if it exists (so newly-added players remain flagged)
+          const createdAt = prev._createdAt || Date.now();
           pvpTargets[name] = {
             eggs: eggsEstimate,
             hp: Math.min(prev.maxHp || hpEstimate, prev.hp || hpEstimate),
             maxHp: hpEstimate,
             lastDamageAt: prev.lastDamageAt || 0,
             estMp: estMp,
-            lastFetchedAt: Date.now()
+            lastFetchedAt: Date.now(),
+            _createdAt: createdAt
           };
 
           // Update AI leaderboard entries if present (case-insensitive)
@@ -1756,7 +1756,11 @@
         const entries = getLeaderboardEntries(leaderboardFocusNearby);
         entries.forEach((entry, idx) => {
           const item = document.createElement('li');
-          item.innerHTML = `<span>${idx + 1}. ${entry.name}</span><strong>${formatNumber(entry.score)} pts</strong>`;
+          let rightHtml = `<strong>${formatNumber(entry.score)} pts</strong>`;
+          if (typeof entry.exactScore !== 'undefined' && entry.exactScore !== entry.score) {
+            rightHtml += ` <span style="color:var(--text-muted); font-size:0.78rem; margin-left:6px;">(${formatNumber(entry.exactScore)} exact)</span>`;
+          }
+          item.innerHTML = `<span>${idx + 1}. ${entry.name}</span>${rightHtml}`;
           leaderboardEl.appendChild(item);
         });
       }
@@ -1925,11 +1929,7 @@
         document.getElementById('liveCountdown').innerText = `${String(days).padStart(2, '0')}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
       }, 1000);
 
-      // Seed PvP target simulation state for UI demo entries
-      pvpTargets['slothmaster'] = { eggs: 15400, hp: 140, maxHp: 140, lastDamageAt: 0 };
-      pvpTargets['crypto_node'] = { eggs: 9800, hp: 80, maxHp: 80, lastDamageAt: 0 };
-      updatePvpTargetDisplay('slothmaster');
-      updatePvpTargetDisplay('crypto_node');
+      // No seeded demo PvP targets — real players populate PvP lists via fetches
     }
 
     function toggleLeaderboardFocus() {
@@ -1944,7 +1944,11 @@
       list.innerHTML = '';
       getLeaderboardTop10().forEach((entry, idx) => {
         const item = document.createElement('li');
-        item.innerHTML = `<span>${idx + 1}. ${entry.name}</span><strong>${formatNumber(entry.score)} pts</strong>`;
+        let rightHtml = `<strong>${formatNumber(entry.score)} pts</strong>`;
+        if (typeof entry.exactScore !== 'undefined' && entry.exactScore !== entry.score) {
+          rightHtml += ` <span style="color:var(--text-muted); font-size:0.78rem; margin-left:6px;">(${formatNumber(entry.exactScore)} exact)</span>`;
+        }
+        item.innerHTML = `<span>${idx + 1}. ${entry.name}</span>${rightHtml}`;
         list.appendChild(item);
       });
       modal.style.display = 'flex';
